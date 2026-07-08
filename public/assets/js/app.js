@@ -50,6 +50,7 @@ document.addEventListener('DOMContentLoaded', () => {
     const orderStatusBadge = document.getElementById('orderStatusBadge');
     const otpCodeDisplay = document.getElementById('otpCodeDisplay');
     const copyOtpBtn = document.getElementById('copyOtpBtn');
+    const endActivationBtn = document.getElementById('endActivationBtn');
     const smsStatusContainer = document.getElementById('smsStatusContainer');
     const waitingStatusText = document.getElementById('waitingStatusText');
     const waitingSpinner = document.getElementById('waitingSpinner');
@@ -173,6 +174,8 @@ document.addEventListener('DOMContentLoaded', () => {
         // Core purchase actions triggers
         buyNumberBtn.addEventListener('click', handleBuyNumber);
         copyOtpBtn.addEventListener('click', handleCopyOtp);
+        endActivationBtn.addEventListener('click', handleEndActivation);
+        numberDisplay.addEventListener('click', handleCopyNumber);
 
         // Services search filter
         servicesSearch.addEventListener('input', renderServicesTable);
@@ -455,16 +458,23 @@ document.addEventListener('DOMContentLoaded', () => {
             body: JSON.stringify({ country, service })
         })
         .then(res => res.json())
-        .then(data => {
             if (data.success) {
                 currentOrderId = data.order_id;
-                numberDisplay.textContent = data.number;
+                
+                let formattedNumber = data.number;
+                if (formattedNumber && !formattedNumber.startsWith('+')) {
+                    formattedNumber = '+' + formattedNumber;
+                }
+                numberDisplay.textContent = formattedNumber;
+                numberDisplay.style.cursor = 'pointer';
+                
                 orderIdDisplay.textContent = data.order_id;
                 orderStatusBadge.textContent = 'Not Received';
                 orderStatusBadge.className = 'badge-custom badge-pending';
 
                 otpCodeDisplay.textContent = '------';
                 copyOtpBtn.disabled = true;
+                endActivationBtn.style.display = 'block';
                 smsStatusContainer.className = 'sms-status-container glow-pending';
 
                 waitingSpinner.classList.remove('d-none');
@@ -513,17 +523,22 @@ document.addEventListener('DOMContentLoaded', () => {
             .then(res => res.json())
             .then(data => {
                 if (data.success) {
+                    if (data.otp && data.otp !== '------' && data.otp !== 'Not Received') {
+                        otpCodeDisplay.textContent = data.otp;
+                        copyOtpBtn.disabled = false;
+                        waitingStatusText.textContent = 'OTP received! Checking for subsequent messages...';
+                        loadHistory();
+                    }
+
                     if (data.status === 'COMPLETED') {
                         stopIntervals();
                         orderStatusBadge.textContent = 'Done';
                         orderStatusBadge.className = 'badge-custom badge-completed';
                         
-                        otpCodeDisplay.textContent = data.otp;
-                        copyOtpBtn.disabled = false;
-                        
                         smsStatusContainer.className = 'sms-status-container glow-success';
                         waitingSpinner.classList.add('d-none');
-                        waitingStatusText.textContent = 'Verification code successfully received!';
+                        waitingStatusText.textContent = 'Activation complete.';
+                        endActivationBtn.style.display = 'none';
                         
                         loadProfile();
                         loadHistory();
@@ -541,6 +556,7 @@ document.addEventListener('DOMContentLoaded', () => {
         smsStatusContainer.className = 'sms-status-container';
         waitingSpinner.classList.add('d-none');
         waitingStatusText.textContent = 'Operation expired.';
+        endActivationBtn.style.display = 'none';
         loadHistory();
     }
 
@@ -560,6 +576,64 @@ document.addEventListener('DOMContentLoaded', () => {
                 setTimeout(() => copyOtpBtn.innerHTML = orig, 1500);
             });
         }
+    }
+
+    function handleCopyNumber() {
+        const text = numberDisplay.textContent.trim();
+        if (text && text !== 'No active order' && text !== 'Ordering...') {
+            navigator.clipboard.writeText(text).then(() => {
+                showAlert('Phone number copied to clipboard!', 'success');
+            });
+        }
+    }
+
+    function handleEndActivation() {
+        if (!currentOrderId) return;
+        
+        endActivationBtn.disabled = true;
+        endActivationBtn.innerHTML = '<span class="spinner-border spinner-border-sm me-2"></span>Ending...';
+
+        authFetch('/api/buy/end', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ order_id: currentOrderId })
+        })
+        .then(res => res.json())
+        .then(data => {
+            if (data.success) {
+                stopIntervals();
+                
+                orderStatusBadge.textContent = data.status === 'COMPLETED' ? 'Done' : 'Expired';
+                orderStatusBadge.className = `badge-custom badge-${data.status === 'COMPLETED' ? 'completed' : 'expired'}`;
+                smsStatusContainer.className = 'sms-status-container';
+                
+                waitingSpinner.classList.add('d-none');
+                waitingStatusText.textContent = data.status === 'COMPLETED' ? 'Activation complete.' : 'Activation canceled.';
+                
+                if (data.otp && data.otp !== 'Not Received') {
+                    otpCodeDisplay.textContent = data.otp;
+                    copyOtpBtn.disabled = false;
+                } else {
+                    otpCodeDisplay.textContent = '------';
+                    copyOtpBtn.disabled = true;
+                }
+
+                endActivationBtn.style.display = 'none';
+
+                showAlert('Activation successfully finalized.', 'success');
+                loadProfile();
+                loadHistory();
+            } else {
+                showAlert(data.message, 'danger');
+            }
+            endActivationBtn.disabled = false;
+            endActivationBtn.innerHTML = '<i class="fa-solid fa-circle-stop me-2"></i>End Activation';
+        })
+        .catch(err => {
+            showAlert(err.message, 'danger');
+            endActivationBtn.disabled = false;
+            endActivationBtn.innerHTML = '<i class="fa-solid fa-circle-stop me-2"></i>End Activation';
+        });
     }
 
     /**
@@ -629,8 +703,8 @@ document.addEventListener('DOMContentLoaded', () => {
             tr.innerHTML = `
                 <td><code>${d.tx_id}</code></td>
                 <td>${d.method}</td>
-                <td><strong>${formatPrice(parseFloat(d.amount))}</strong></td>
-                <td class="small text-secondary">${new Date(d.created_at).toLocaleString()}</td>
+                <td class="text-nowrap"><strong>${formatPrice(parseFloat(d.amount))}</strong></td>
+                <td class="small text-secondary text-nowrap">${new Date(d.created_at).toLocaleString()}</td>
                 <td><span class="badge ${bc}">${d.status}</span></td>
             `;
             depositHistoryTableBody.appendChild(tr);

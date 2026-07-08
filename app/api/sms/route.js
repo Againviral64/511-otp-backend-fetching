@@ -58,26 +58,28 @@ export async function GET(request) {
             }
         }
 
+        let foundOtp = null;
+
         if (isManualLink || targetSmsUrl) {
             const response = await makeRequest(targetSmsUrl);
             if (response) {
                 const match = response.match(/\b\d{4,8}\b/);
                 if (match) {
-                    status = 'COMPLETED';
-                    otp = match[0];
-                } else {
-                    status = 'PENDING';
+                    foundOtp = match[0];
                 }
             }
         } else {
             if (isMock) {
                 const elapsed = (Date.now() - new Date(orderRow.created_at).getTime()) / 1000;
-                if (elapsed > 300) {
-                    status = 'EXPIRED';
-                    otp = 'Not Received';
-                } else if (elapsed >= 10) {
-                    status = 'COMPLETED';
-                    otp = Math.floor(100000 + Math.random() * 900000).toString();
+                if (elapsed >= 10 && elapsed <= 300) {
+                    const simulatedOtp = (Math.floor(100000 + Math.random() * 900000)).toString();
+                    if (!orderRow.otp || orderRow.otp === '------' || orderRow.otp === 'Not Received') {
+                        foundOtp = simulatedOtp;
+                    } else {
+                        if (elapsed >= 40 && !orderRow.otp.includes(',')) {
+                            foundOtp = simulatedOtp;
+                        }
+                    }
                 }
             } else {
                 const productId = orderRow.product_id;
@@ -91,11 +93,8 @@ export async function GET(request) {
                         if (json.code === 200 && json.data && json.data.msg) {
                             const match = json.data.msg.match(/\b\d{4,8}\b/);
                             if (match) {
-                                status = 'COMPLETED';
-                                otp = match[0];
+                                foundOtp = match[0];
                             }
-                        } else if (json.code === 222) {
-                            status = 'PENDING';
                         }
                     } catch (e) {
                         // Fallthrough
@@ -104,30 +103,55 @@ export async function GET(request) {
             }
         }
 
-        if (status === 'PENDING') {
-            const elapsedSec = (Date.now() - new Date(orderRow.created_at).getTime()) / 1000;
-            if (elapsedSec > 300) {
-                status = 'EXPIRED';
-                otp = 'Not Received';
+        const elapsedSec = (Date.now() - new Date(orderRow.created_at).getTime()) / 1000;
+        const isExpired = elapsedSec > 300;
+
+        let finalOtpVal = orderRow.otp || '------';
+        if (foundOtp) {
+            if (!orderRow.otp || orderRow.otp === '------' || orderRow.otp === 'Not Received') {
+                finalOtpVal = foundOtp;
+            } else {
+                const existingOtps = orderRow.otp.split(',').map(x => x.trim());
+                if (!existingOtps.includes(foundOtp)) {
+                    finalOtpVal = orderRow.otp + ', ' + foundOtp;
+                }
             }
         }
 
-        if (status !== 'PENDING') {
+        if (isExpired) {
+            status = (finalOtpVal && finalOtpVal !== '------' && finalOtpVal !== 'Not Received') ? 'COMPLETED' : 'EXPIRED';
+            if (finalOtpVal === '------') finalOtpVal = 'Not Received';
+            
             if (!isMock && supabase) {
                 await supabase
                     .from('orders')
-                    .update({ status: status, otp: otp || 'Not Received' })
+                    .update({ status: status, otp: finalOtpVal })
                     .eq('order_id', order_id);
             } else {
                 const localIdx = mockOrders.findIndex(o => o.order_id === order_id);
                 if (localIdx !== -1) {
                     mockOrders[localIdx].status = status;
-                    mockOrders[localIdx].otp = otp || 'Not Received';
+                    mockOrders[localIdx].otp = finalOtpVal;
+                }
+            }
+        } else {
+            status = 'PENDING';
+            if (foundOtp) {
+                if (!isMock && supabase) {
+                    await supabase
+                        .from('orders')
+                        .update({ otp: finalOtpVal })
+                        .eq('order_id', order_id);
+                } else {
+                    const localIdx = mockOrders.findIndex(o => o.order_id === order_id);
+                    if (localIdx !== -1) {
+                        mockOrders[localIdx].otp = finalOtpVal;
+                    }
                 }
             }
         }
 
-        return NextResponse.json({ success: true, status, otp });
+        return NextResponse.json({ success: true, status, otp: finalOtpVal });
     } catch (err) {
         return NextResponse.json({ success: false, message: err.message }, { status: 401 });
     }
