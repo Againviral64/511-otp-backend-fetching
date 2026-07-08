@@ -174,23 +174,8 @@ function requireAdmin(req, res, next) {
 router.get('/auth/config', (req, res) => {
     res.json({
         supabaseUrl: process.env.SUPABASE_URL,
-        supabaseKey: process.env.SUPABASE_KEY ? (process.env.SUPABASE_KEY.substring(0, 15) + '...') : null,
-        apiBase: process.env.API_BASE,
-        apiToken: process.env.API_TOKEN ? (process.env.API_TOKEN.substring(0, 5) + '...') : null,
-        isMock: isMock
+        supabaseKey: process.env.SUPABASE_KEY
     });
-});
-
-router.get('/test-admin-stats', async (req, res) => {
-    try {
-        const { data: statsRow, error: statsError } = await supabase
-            .from('admin_overview')
-            .select('*')
-            .maybeSingle();
-        res.json({ success: true, statsRow, statsError });
-    } catch(e) {
-        res.json({ success: false, error: e.message });
-    }
 });
 
 /**

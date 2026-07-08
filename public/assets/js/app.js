@@ -177,6 +177,40 @@ document.addEventListener('DOMContentLoaded', () => {
         // Services search filter
         servicesSearch.addEventListener('input', renderServicesTable);
 
+        // Click delegation listener for "Order" button on each service row
+        servicesTableBody.addEventListener('click', (e) => {
+            const btn = e.target.closest('.order-now-btn');
+            if (btn) {
+                const code = btn.getAttribute('data-code');
+                const groupId = btn.getAttribute('data-group');
+                
+                // 1. Switch to OTP activation pane in the sidebar
+                const otpLink = document.querySelector('.sidebar-link[data-pane="otp"]');
+                if (otpLink) {
+                    sidebarLinks.forEach(l => l.classList.remove('active'));
+                    otpLink.classList.add('active');
+                    paneTitle.textContent = otpLink.textContent.trim();
+                }
+                document.querySelectorAll('.pane-content').forEach(p => p.classList.remove('active'));
+                document.getElementById('pane-otp').classList.add('active');
+                
+                // 2. Select Category Group
+                countrySelect.value = groupId;
+                
+                // 3. Trigger change on group selector to rebuild services option list
+                handleCountryChange();
+                
+                // 4. Select App Service
+                serviceSelect.value = code;
+                
+                // 5. Update display pricing details
+                updatePriceDisplay();
+                
+                // 6. Smooth scroll to top of OTP booking section
+                window.scrollTo({ top: 0, behavior: 'smooth' });
+            }
+        });
+
         // Deposit Guidelines changes
         depositMethod.addEventListener('change', () => {
             const method = depositMethod.value;
@@ -353,7 +387,7 @@ document.addEventListener('DOMContentLoaded', () => {
         });
 
         if (filtered.length === 0) {
-            servicesTableBody.innerHTML = `<tr><td colspan="5" class="text-center py-4 text-muted">No service apps found matching search.</td></tr>`;
+            servicesTableBody.innerHTML = `<tr><td colspan="6" class="text-center py-4 text-muted">No service apps found matching search.</td></tr>`;
             return;
         }
 
@@ -365,6 +399,11 @@ document.addEventListener('DOMContentLoaded', () => {
                 <td><code>${s.code}</code></td>
                 <td><strong class="text-primary">${formatPrice(s.price)}</strong></td>
                 <td><span class="badge bg-success">${s.stock} Numbers</span></td>
+                <td class="text-end">
+                    <button class="btn btn-sm btn-primary px-3 rounded-pill fw-bold order-now-btn" data-code="${s.code}" data-group="${s.group_id}">
+                        <i class="fa-solid fa-cart-shopping me-1"></i>Order
+                    </button>
+                </td>
             `;
             servicesTableBody.appendChild(tr);
         });
