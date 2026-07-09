@@ -141,6 +141,38 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 
     function setupEventListeners() {
+        // Toggle sidebar drawer on mobile/tablet
+        const sidebarToggleBtn = document.getElementById('sidebarToggleBtn');
+        const sidebarCloseBtn = document.getElementById('sidebarCloseBtn');
+        const sidebarEl = document.querySelector('.sidebar');
+        
+        let backdrop = document.querySelector('.sidebar-backdrop');
+        if (!backdrop) {
+            backdrop = document.createElement('div');
+            backdrop.className = 'sidebar-backdrop';
+            document.body.appendChild(backdrop);
+        }
+
+        const closeSidebarFn = () => {
+            if (sidebarEl) sidebarEl.classList.remove('open');
+            if (backdrop) backdrop.classList.remove('show');
+        };
+
+        if (sidebarToggleBtn && sidebarEl) {
+            sidebarToggleBtn.addEventListener('click', () => {
+                sidebarEl.classList.add('open');
+                backdrop.classList.add('show');
+            });
+        }
+
+        if (sidebarCloseBtn) {
+            sidebarCloseBtn.addEventListener('click', closeSidebarFn);
+        }
+
+        if (backdrop) {
+            backdrop.addEventListener('click', closeSidebarFn);
+        }
+
         // Sidebar Navigation click router
         sidebarLinks.forEach(link => {
             link.addEventListener('click', (e) => {
@@ -159,6 +191,11 @@ document.addEventListener('DOMContentLoaded', () => {
                 // Update Header Pane Title Text
                 paneTitle.textContent = link.textContent.trim();
                 alertContainer.innerHTML = ''; // Clear alerts on switch
+
+                // Close sidebar drawer on mobile after link selection
+                if (window.innerWidth <= 1023) {
+                    closeSidebarFn();
+                }
             });
         });
 

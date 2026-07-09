@@ -379,3 +379,152 @@ body {
     color: white;
     border-color: transparent;
 }
+
+/* ==========================================
+   MOBILE & TABLET RESPONSIVENESS INJECTIONS
+   ========================================== */
+
+/* 1. Global Responsive Rules */
+img {
+    max-width: 100%;
+    height: auto;
+}
+
+/* 2. Tablets and Mobiles (<= 1023px) */
+@media (max-width: 1023px) {
+    /* Drawer Sidebar Menu for User Dashboard */
+    .sidebar {
+        transform: translateX(-100%);
+        transition: transform 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+        box-shadow: 10px 0 30px rgba(15, 23, 42, 0.25);
+    }
+    .sidebar.open {
+        transform: translateX(0);
+    }
+    .sidebar #sidebarCloseBtn {
+        display: block !important;
+    }
+    .workspace {
+        margin-left: 0 !important;
+        width: 100% !important;
+    }
+    #sidebarToggleBtn {
+        display: inline-flex !important;
+    }
+    .sidebar-backdrop {
+        position: fixed;
+        top: 0;
+        left: 0;
+        width: 100vw;
+        height: 100vh;
+        background-color: rgba(15, 23, 42, 0.5);
+        backdrop-filter: blur(4px);
+        z-index: 95;
+        opacity: 0;
+        visibility: hidden;
+        transition: opacity 0.3s ease, visibility 0.3s ease;
+    }
+    .sidebar-backdrop.show {
+        opacity: 1;
+        visibility: visible;
+    }
+    
+    /* Layout Cards and Stack */
+    .workspace-content {
+        padding: 1.25rem !important;
+    }
+    .main-card {
+        padding: 1.5rem !important;
+        margin-bottom: 1.5rem;
+    }
+
+    /* Modals Responsive scaling */
+    .modal-dialog {
+        margin: 1.25rem auto !important;
+        max-width: calc(100% - 2.5rem) !important;
+    }
+    .modal-body {
+        padding: 1.25rem !important;
+    }
+}
+
+/* 3. Horizontal scrolling for admin chip-tab menu */
+.nav-tabs-custom {
+    display: flex !important;
+    flex-wrap: nowrap !important;
+    overflow-x: auto !important;
+    -webkit-overflow-scrolling: touch;
+    scrollbar-width: none; /* Firefox */
+}
+.nav-tabs-custom::-webkit-scrollbar {
+    display: none; /* Chrome/Safari/Edge */
+}
+.nav-tabs-custom .nav-link {
+    white-space: nowrap !important;
+    flex: 0 0 auto !important;
+}
+
+/* 4. Small Mobiles (<= 767px) */
+@media (max-width: 767px) {
+    /* Header wrapped elements */
+    .workspace-header {
+        flex-direction: column;
+        align-items: flex-start !important;
+        gap: 1rem;
+        padding: 1rem 1.25rem !important;
+    }
+    .workspace-header .d-flex {
+        flex-wrap: wrap;
+        width: 100%;
+        gap: 0.5rem !important;
+    }
+    .workspace-header .balance-card {
+        flex-grow: 1;
+        justify-content: space-between;
+        padding: 0.5rem 0.75rem !important;
+    }
+    .page-title {
+        font-size: 1.3rem !important;
+    }
+
+    /* Landing/Home Page Hero Section */
+    .hero-section {
+        padding: 3rem 0 !important;
+        text-align: center;
+    }
+    .hero-section .display-4 {
+        font-size: 2.2rem !important;
+    }
+    .hero-section .d-flex {
+        justify-content: center;
+    }
+
+    /* Admin header stacking */
+    .admin-header .container {
+        flex-direction: column;
+        gap: 0.75rem;
+        align-items: center !important;
+        text-align: center;
+    }
+
+    /* General Form inputs margin adjustments */
+    .form-select, .form-control {
+        padding: 0.65rem 0.85rem !important;
+    }
+
+    /* Button wrapper text-wrapping and scaling */
+    .btn-primary-custom, .btn-action {
+        width: 100%;
+        text-align: center;
+    }
+}
+
+/* 5. Micro Screen optimizations (<= 480px) */
+@media (max-width: 480px) {
+    .auth-card {
+        padding: 1.5rem !important;
+    }
+    .auth-logo {
+        font-size: 1.75rem !important;
+    }
+}
