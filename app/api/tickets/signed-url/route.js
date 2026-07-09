@@ -9,8 +9,8 @@ export async function GET(request) {
         const path = searchParams.get('path');
         if (!path) return NextResponse.json({ success: false, message: 'Missing path parameter' });
 
-        // Enforce security by checking if path starts with the logged-in user's ID
-        if (!path.startsWith(user.id)) {
+        // Enforce security by checking if path starts with the tickets/logged-in user's ID
+        if (!path.startsWith(`tickets/${user.id}`)) {
             return NextResponse.json({ success: false, message: 'Access Denied: You do not own this ticket proof.' }, { status: 403 });
         }
 
@@ -19,7 +19,7 @@ export async function GET(request) {
         }
 
         const { data, error } = await supabase.storage
-            .from('ticket-proofs')
+            .from('deposit-proofs')
             .createSignedUrl(path, 3600); // 1 hour expiration
 
         if (error) return NextResponse.json({ success: false, message: error.message });

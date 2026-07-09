@@ -14,7 +14,7 @@ export async function GET(request) {
         }
 
         const { data, error } = await supabase.storage
-            .from('ticket-proofs')
+            .from('deposit-proofs')
             .createSignedUrl(path, 3600); // 1 hour expiration
 
         if (error) return NextResponse.json({ success: false, message: error.message });

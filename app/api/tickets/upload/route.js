@@ -28,24 +28,14 @@ export async function POST(request) {
 
         const fileExt = file.name.split('.').pop();
         const uniqueId = `TKT-${Math.floor(100000 + Math.random() * 900000)}`;
-        const filePath = `${user.id}/${uniqueId}/screenshot.${fileExt}`;
+        const filePath = `tickets/${user.id}/${uniqueId}/screenshot.${fileExt}`;
 
         if (isMock || !supabase) {
             return NextResponse.json({ success: true, filePath: 'mock_proofs/' + filePath });
         }
 
-        // Ensure ticket-proofs bucket exists and is public
-        try {
-            const { data: buckets } = await supabase.storage.listBuckets();
-            if (buckets && !buckets.some(b => b.name === 'ticket-proofs')) {
-                await supabase.storage.createBucket('ticket-proofs', { public: true });
-            }
-        } catch (bucketErr) {
-            console.error('Error listing/creating bucket:', bucketErr);
-        }
-
         const { data, error } = await supabase.storage
-            .from('ticket-proofs')
+            .from('deposit-proofs')
             .upload(filePath, buffer, {
                 contentType: file.type,
                 duplex: 'half'
