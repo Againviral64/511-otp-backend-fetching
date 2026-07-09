@@ -172,6 +172,9 @@
             <button class="nav-link" id="tab-deposit-methods" data-bs-toggle="tab" data-bs-target="#pane-deposit-methods" type="button" role="tab">
                 <i class="fa-solid fa-money-check-dollar me-2"></i>Deposit Methods
             </button>
+            <button class="nav-link" id="tab-tickets" data-bs-toggle="tab" data-bs-target="#pane-tickets" type="button" role="tab">
+                <i class="fa-solid fa-headset me-2"></i>Support Tickets
+            </button>
             <button class="nav-link" id="tab-settings" data-bs-toggle="tab" data-bs-target="#pane-settings" type="button" role="tab">
                 <i class="fa-solid fa-gears me-2"></i>System Settings
             </button>
@@ -574,6 +577,90 @@
                 </div>
             </div>
 
+            <!-- Support Tickets Management Tab -->
+            <div class="tab-pane fade" id="pane-tickets" role="tabpanel">
+                <!-- Ticket List Card -->
+                <div class="main-card p-4" id="adminTicketListCard">
+                    <div class="d-flex flex-wrap justify-content-between align-items-center mb-4 gap-3">
+                        <h3 class="card-title m-0"><i class="fa-solid fa-headset text-primary me-2"></i>Support Tickets Log</h3>
+                        
+                        <!-- Search & Filter Controls -->
+                        <div class="d-flex align-items-center gap-2 flex-wrap">
+                            <input type="text" class="form-control form-control-sm" id="adminTicketSearchInput" placeholder="Search ID, Subject, Email..." style="width: 240px; border-radius: 8px;">
+                            <select class="form-select form-select-sm" id="adminTicketStatusFilter" style="width: 130px; border-radius: 8px;">
+                                <option value="">All Status</option>
+                                <option value="OPEN">Open</option>
+                                <option value="CLOSED">Closed</option>
+                            </select>
+                        </div>
+                    </div>
+
+                    <div class="table-responsive">
+                        <table class="table table-hover align-middle">
+                            <thead>
+                                <tr>
+                                    <th>Ticket ID</th>
+                                    <th>Subject</th>
+                                    <th>Category</th>
+                                    <th>User</th>
+                                    <th>Email</th>
+                                    <th>Status</th>
+                                    <th>Created</th>
+                                    <th class="text-end">Action</th>
+                                </tr>
+                            </thead>
+                            <tbody id="adminTicketsTableBody">
+                                <tr>
+                                    <td colspan="8" class="text-center py-5 text-muted">
+                                        <i class="fa-solid fa-spinner fa-spin fa-2x mb-3 text-primary"></i><br>Loading support tickets...
+                                    </td>
+                                </tr>
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+
+                <!-- Ticket Chat Detail Card -->
+                <div class="main-card p-4 d-none" id="adminTicketChatCard">
+                    <div class="d-flex justify-content-between align-items-center border-bottom pb-3 mb-4">
+                        <div>
+                            <button class="btn btn-sm btn-outline-secondary me-3" id="adminCloseChatBtn" style="border-radius: 8px;">
+                                <i class="fa-solid fa-arrow-left me-1"></i>Back to List
+                            </button>
+                            <span class="fs-5 fw-bold text-dark" id="adminChatTicketTitle">Subject</span>
+                            <span class="badge bg-success ms-2" id="adminChatTicketStatus">OPEN</span>
+                        </div>
+                        <button class="btn btn-sm btn-danger" id="adminCloseTicketActionBtn" style="border-radius: 8px;">
+                            <i class="fa-solid fa-circle-xmark me-1"></i>Close Ticket
+                        </button>
+                    </div>
+
+                    <!-- Ticket Metadata Grid -->
+                    <div class="row g-3 mb-4 bg-light p-3 rounded border" style="font-size: 0.85rem;">
+                        <div class="col-md-3"><strong>Category:</strong> <span id="adminMetaCategory">-</span></div>
+                        <div class="col-md-3"><strong>User Name:</strong> <span id="adminMetaUser">-</span></div>
+                        <div class="col-md-3"><strong>User Email:</strong> <span id="adminMetaEmail">-</span></div>
+                        <div class="col-md-3"><strong>Created:</strong> <span id="adminMetaCreated">-</span></div>
+                    </div>
+
+                    <!-- Chat Messages List -->
+                    <div class="chat-container mb-3" style="height: 400px; display: flex; flex-direction: column;">
+                        <div class="chat-messages d-flex flex-column p-3 bg-light flex-grow-1" id="adminChatMessages" style="overflow-y: auto;">
+                            <!-- Appended dynamically -->
+                        </div>
+                        <form class="chat-input-area d-flex p-2 bg-white border-top gap-2" id="adminChatInputForm">
+                            <input type="text" class="form-control" id="adminChatInputMessage" placeholder="Type message..." required autocomplete="off">
+                            <button type="submit" class="btn btn-primary-custom m-0 px-4" id="adminChatInputSubmitBtn">
+                                <i class="fa-solid fa-paper-plane"></i>
+                            </button>
+                        </form>
+                        <div id="adminClosedTicketMessage" class="alert alert-secondary text-center d-none m-2" style="border-radius: 8px; font-weight: 500; font-size: 0.9rem;">
+                            <i class="fa-solid fa-lock me-1"></i>Ticket Closed
+                        </div>
+                    </div>
+                </div>
+            </div>
+
             <!-- 5. SYSTEM SETTINGS TAB -->
             <div class="tab-pane fade" id="pane-settings" role="tabpanel">
                 <div class="main-card p-4" style="max-width: 550px;">
@@ -917,6 +1004,9 @@
                             document.getElementById('statTotalLiability').textContent = `₨ ${parseFloat(s.total_liability).toFixed(2)}`;
                         }
                     });
+
+                // Support Tickets listing fetch
+                if (typeof loadAdminTickets === 'function') loadAdminTickets();
 
                 // 1. Fetch pending deposits
                 fetch('/api/admin/deposits', { headers })
@@ -1801,6 +1891,320 @@
                     showAlert('Error deleting method: ' + err.message, 'danger');
                 });
             };
+
+            // --- Support Tickets Admin Handlers ---
+            const adminTicketsTableBody = document.getElementById('adminTicketsTableBody');
+            const adminTicketSearchInput = document.getElementById('adminTicketSearchInput');
+            const adminTicketStatusFilter = document.getElementById('adminTicketStatusFilter');
+            const adminTicketListCard = document.getElementById('adminTicketListCard');
+            const adminTicketChatCard = document.getElementById('adminTicketChatCard');
+            
+            const adminCloseChatBtn = document.getElementById('adminCloseChatBtn');
+            const adminChatTicketTitle = document.getElementById('adminChatTicketTitle');
+            const adminChatTicketStatus = document.getElementById('adminChatTicketStatus');
+            const adminCloseTicketActionBtn = document.getElementById('adminCloseTicketActionBtn');
+            
+            const adminMetaCategory = document.getElementById('adminMetaCategory');
+            const adminMetaUser = document.getElementById('adminMetaUser');
+            const adminMetaEmail = document.getElementById('adminMetaEmail');
+            const adminMetaCreated = document.getElementById('adminMetaCreated');
+            
+            const adminChatMessages = document.getElementById('adminChatMessages');
+            const adminChatInputForm = document.getElementById('adminChatInputForm');
+            const adminChatInputMessage = document.getElementById('adminChatInputMessage');
+            const adminClosedTicketMessage = document.getElementById('adminClosedTicketMessage');
+            
+            let activeAdminChatTicketId = null;
+            let adminChatInterval = null;
+            let adminRealtimeChannel = null;
+            let adminSupabaseClient = null;
+
+            async function initAdminSupabaseClient() {
+                if (adminSupabaseClient) return adminSupabaseClient;
+                try {
+                    const res = await fetch('/api/auth/config');
+                    const config = await res.json();
+                    if (config.supabaseUrl && config.supabaseKey) {
+                        adminSupabaseClient = supabase.createClient(config.supabaseUrl, config.supabaseKey);
+                    }
+                } catch (e) {
+                    console.error('Admin realtime config init error:', e);
+                }
+                return adminSupabaseClient;
+            }
+
+            function loadAdminTickets() {
+                if (!adminTicketsTableBody) return;
+                const search = adminTicketSearchInput ? adminTicketSearchInput.value.trim() : '';
+                const status = adminTicketStatusFilter ? adminTicketStatusFilter.value : '';
+                
+                fetch(`/api/admin/tickets?search=${encodeURIComponent(search)}&status=${encodeURIComponent(status)}`, {
+                    headers: { 'Authorization': 'Bearer ' + sessionToken }
+                })
+                .then(res => res.json())
+                .then(data => {
+                    if (data.success) {
+                        adminTicketsTableBody.innerHTML = '';
+                        if (data.tickets.length === 0) {
+                            adminTicketsTableBody.innerHTML = `<tr><td colspan="8" class="text-center py-4 text-muted">No support tickets found.</td></tr>`;
+                            return;
+                        }
+                        data.tickets.forEach(t => {
+                            const tr = document.createElement('tr');
+                            const statusClass = t.status === 'OPEN' ? 'bg-success' : 'bg-secondary';
+                            const userEmail = t.profiles ? t.profiles.email : '-';
+                            const userName = t.profiles ? t.profiles.name : '-';
+                            
+                            let proofHtml = '<span class="text-muted small">No Attachment</span>';
+                            if (t.proof_image && t.proof_image.trim() !== '') {
+                                proofHtml = `
+                                    <span class="text-success small fw-semibold">
+                                        <i class="fa-solid fa-circle-check me-1"></i>Image Attached
+                                    </span>
+                                    <button class="btn btn-sm btn-outline-primary ms-2" onclick="viewAdminTicketProof('${t.proof_image}')" style="padding: 1px 6px; font-size: 0.75rem; border-radius: 6px;">
+                                        <i class="fa-solid fa-eye me-1"></i>Preview
+                                    </button>
+                                `;
+                            }
+
+                            tr.innerHTML = `
+                                <td><code>#${t.id}</code></td>
+                                <td><strong>${t.title}</strong></td>
+                                <td>${t.category}</td>
+                                <td>${userName}</td>
+                                <td>${userEmail}</td>
+                                <td><span class="badge ${statusClass}">${t.status}</span></td>
+                                <td class="small text-secondary">${new Date(t.created_at).toLocaleDateString()}</td>
+                                <td class="text-end">
+                                    <div class="d-flex align-items-center justify-content-end gap-2">
+                                        ${proofHtml}
+                                        <button class="btn btn-sm btn-primary px-3 py-1 btn-action" onclick="openAdminTicketChat('${t.id}', '${t.title.replace(/'/g, "\\'")}', '${t.status}', '${t.category}', '${userName.replace(/'/g, "\\'")}', '${userEmail}', '${t.created_at}')">
+                                            <i class="fa-solid fa-comments me-1"></i>Open Chat
+                                        </button>
+                                    </div>
+                                </td>
+                            `;
+                            adminTicketsTableBody.appendChild(tr);
+                        });
+                    }
+                });
+            }
+
+            window.openAdminTicketChat = function(id, title, status, category, user, email, created) {
+                activeAdminChatTicketId = id;
+                adminChatTicketTitle.textContent = title;
+                adminChatTicketStatus.textContent = status;
+                adminChatTicketStatus.className = `badge ${status === 'OPEN' ? 'bg-success' : 'bg-secondary'}`;
+                
+                adminMetaCategory.textContent = category;
+                adminMetaUser.textContent = user;
+                adminMetaEmail.textContent = email;
+                adminMetaCreated.textContent = new Date(created).toLocaleString();
+
+                if (status === 'CLOSED') {
+                    adminCloseTicketActionBtn.classList.add('d-none');
+                    adminChatInputForm.classList.add('d-none');
+                    adminClosedTicketMessage.classList.remove('d-none');
+                } else {
+                    adminCloseTicketActionBtn.classList.remove('d-none');
+                    adminChatInputForm.classList.remove('d-none');
+                    adminClosedTicketMessage.classList.add('d-none');
+                }
+
+                adminTicketListCard.classList.add('d-none');
+                adminTicketChatCard.classList.remove('d-none');
+
+                loadAdminChatMessages(id);
+
+                // Polling fallback
+                if (adminChatInterval) clearInterval(adminChatInterval);
+                adminChatInterval = setInterval(() => {
+                    loadAdminChatMessages(id);
+                }, 4000);
+
+                // Supabase Realtime channel setup
+                initAdminSupabaseClient().then(client => {
+                    if (!client) return;
+                    if (adminRealtimeChannel) {
+                        client.removeChannel(adminRealtimeChannel);
+                    }
+                    adminRealtimeChannel = client
+                        .channel(`public:ticket_messages:admin_ticket_id=eq.${id}`)
+                        .on('postgres_changes', {
+                            event: '*',
+                            schema: 'public',
+                            table: 'ticket_messages',
+                            filter: `ticket_id=eq.${id}`
+                        }, (payload) => {
+                            loadAdminChatMessages(id);
+                        })
+                        .on('postgres_changes', {
+                            event: 'UPDATE',
+                            schema: 'public',
+                            table: 'tickets',
+                            filter: `id=eq.${id}`
+                        }, (payload) => {
+                            if (payload.new && payload.new.status) {
+                                adminChatTicketStatus.textContent = payload.new.status;
+                                adminChatTicketStatus.className = `badge ${payload.new.status === 'OPEN' ? 'bg-success' : 'bg-secondary'}`;
+                                if (payload.new.status === 'CLOSED') {
+                                    adminCloseTicketActionBtn.classList.add('d-none');
+                                    adminChatInputForm.classList.add('d-none');
+                                    adminClosedTicketMessage.classList.remove('d-none');
+                                }
+                            }
+                        })
+                        .subscribe();
+                });
+            };
+
+            function loadAdminChatMessages(id) {
+                fetch(`/api/admin/tickets/${id}/messages`, {
+                    headers: { 'Authorization': 'Bearer ' + sessionToken }
+                })
+                .then(res => res.json())
+                .then(data => {
+                    if (data.success) {
+                        adminChatMessages.innerHTML = '';
+
+                        // Status sync
+                        if (data.status) {
+                            adminChatTicketStatus.textContent = data.status;
+                            adminChatTicketStatus.className = `badge ${data.status === 'OPEN' ? 'bg-success' : 'bg-secondary'}`;
+                            if (data.status === 'CLOSED') {
+                                adminCloseTicketActionBtn.classList.add('d-none');
+                                adminChatInputForm.classList.add('d-none');
+                                adminClosedTicketMessage.classList.remove('d-none');
+                            } else {
+                                adminCloseTicketActionBtn.classList.remove('d-none');
+                                adminChatInputForm.classList.remove('d-none');
+                                adminClosedTicketMessage.classList.add('d-none');
+                            }
+                        }
+
+                        // Proof image top list container preview
+                        if (data.proof_image) {
+                            const div = document.createElement('div');
+                            div.className = 'p-3 mb-3 border rounded bg-white text-start';
+                            div.innerHTML = `
+                                <div class="small text-secondary fw-semibold mb-2"><i class="fa-solid fa-paperclip me-1"></i>User Attachment Screenshot:</div>
+                                <button class="btn btn-sm btn-outline-primary d-inline-flex align-items-center" onclick="viewAdminTicketProof('${data.proof_image}')" style="border-radius: 8px;">
+                                    <i class="fa-solid fa-eye me-1"></i>Preview Screenshot
+                                </button>
+                            `;
+                            adminChatMessages.appendChild(div);
+                        }
+
+                        data.messages.forEach(m => {
+                            const div = document.createElement('div');
+                            const isSupportSender = m.sender_email === 'System Support' || m.sender_id === 'admin';
+                            div.className = `chat-bubble ${isSupportSender ? 'sent ms-auto bg-primary text-white' : 'received me-auto bg-light text-dark'}`;
+                            div.style.maxWidth = '75%';
+                            div.style.borderRadius = '12px';
+                            div.style.padding = '0.75rem 1rem';
+                            div.style.marginBottom = '0.75rem';
+
+                            div.innerHTML = `
+                                <div class="small fw-semibold opacity-75 mb-1" style="font-size: 0.75rem;">${isSupportSender ? 'Support Admin' : m.sender_email}</div>
+                                <div>${m.message}</div>
+                                <div class="text-end small opacity-50 mt-1" style="font-size: 0.65rem;">${new Date(m.created_at).toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'})}</div>
+                            `;
+                            adminChatMessages.appendChild(div);
+                        });
+                        adminChatMessages.scrollTop = adminChatMessages.scrollHeight;
+                    }
+                });
+            }
+
+            window.viewAdminTicketProof = function(path) {
+                if (!path) return;
+                fetch(`/api/admin/tickets/signed-url?path=${encodeURIComponent(path)}`, {
+                    headers: { 'Authorization': 'Bearer ' + sessionToken }
+                })
+                .then(res => res.json())
+                .then(data => {
+                    if (data.success) {
+                        const modal = new bootstrap.Modal(document.getElementById('viewProofModal'));
+                        document.getElementById('viewProofModalLabel').textContent = "Ticket Attachment Preview";
+                        document.getElementById('modalProofImg').src = data.signedUrl;
+                        modal.show();
+                    } else {
+                        alert('Error loading image preview: ' + data.message);
+                    }
+                });
+            };
+
+            if (adminCloseChatBtn) {
+                adminCloseChatBtn.addEventListener('click', () => {
+                    if (adminChatInterval) clearInterval(adminChatInterval);
+                    activeAdminChatTicketId = null;
+                    adminTicketChatCard.classList.add('d-none');
+                    adminTicketListCard.classList.remove('d-none');
+                    loadAdminTickets();
+                });
+            }
+
+            if (adminCloseTicketActionBtn) {
+                adminCloseTicketActionBtn.addEventListener('click', () => {
+                    if (!activeAdminChatTicketId) return;
+                    if (!confirm('Are you sure you want to CLOSE this support ticket? Future messages will be disabled.')) return;
+                    
+                    fetch('/api/admin/tickets/action', {
+                        method: 'PUT',
+                        headers: {
+                            'Content-Type': 'application/json',
+                            'Authorization': 'Bearer ' + sessionToken
+                        },
+                        body: JSON.stringify({ id: activeAdminChatTicketId, status: 'CLOSED' })
+                    })
+                    .then(res => res.json())
+                    .then(data => {
+                        if (data.success) {
+                            loadAdminChatMessages(activeAdminChatTicketId);
+                        } else {
+                            alert('Failed to close ticket: ' + data.message);
+                        }
+                    });
+                });
+            }
+
+            if (adminChatInputForm) {
+                adminChatInputForm.addEventListener('submit', (e) => {
+                    e.preventDefault();
+                    const message = adminChatInputMessage.value.trim();
+                    if (!message || !activeAdminChatTicketId) return;
+                    adminChatInputMessage.value = '';
+
+                    fetch(`/api/admin/tickets/${activeAdminChatTicketId}/messages`, {
+                        method: 'POST',
+                        headers: {
+                            'Content-Type': 'application/json',
+                            'Authorization': 'Bearer ' + sessionToken
+                        },
+                        body: JSON.stringify({ message })
+                    })
+                    .then(res => res.json())
+                    .then(data => {
+                        if (data.success) {
+                            loadAdminChatMessages(activeAdminChatTicketId);
+                        } else {
+                            alert('Failed to send message: ' + data.message);
+                        }
+                    });
+                });
+            }
+
+            if (adminTicketSearchInput) {
+                adminTicketSearchInput.addEventListener('input', () => {
+                    loadAdminTickets();
+                });
+            }
+
+            if (adminTicketStatusFilter) {
+                adminTicketStatusFilter.addEventListener('change', () => {
+                    loadAdminTickets();
+                });
+            }
 
             // 7. Verify Admin Identity on Load
             const headers = { 'Authorization': 'Bearer ' + sessionToken };

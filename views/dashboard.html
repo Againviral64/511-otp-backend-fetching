@@ -602,6 +602,11 @@
                                         <option value="Other">Other Help</option>
                                     </select>
                                 </div>
+                                <div class="mb-3">
+                                    <label class="form-label">Payment / Issue Screenshot (Optional)</label>
+                                    <input type="file" class="form-control" id="ticketProofInput" accept=".jpg,.jpeg,.png,.webp">
+                                    <div class="form-text">Accepted formats: JPG, JPEG, PNG, WEBP. Max size: 5MB.</div>
+                                </div>
                                 <div class="mb-4">
                                     <label for="ticketMessage" class="form-label">Detailed Message</label>
                                     <textarea class="form-control" id="ticketMessage" rows="4" placeholder="Describe your issue in detail..." required></textarea>
@@ -654,12 +659,15 @@
                                 <div class="chat-messages d-flex flex-column" id="chatMessages">
                                     <!-- Messages appended dynamically -->
                                 </div>
-                                <form class="chat-input-area d-flex gap-2" id="chatInputForm">
-                                    <input type="text" class="form-control" id="chatInputMessage" placeholder="Type message..." required autocomplete="off">
-                                    <button type="submit" class="btn btn-primary-custom m-0 px-4">
-                                        <i class="fa-solid fa-paper-plane"></i>
-                                    </button>
-                                </form>
+                                 <form class="chat-input-area d-flex gap-2" id="chatInputForm">
+                                     <input type="text" class="form-control" id="chatInputMessage" placeholder="Type message..." required autocomplete="off">
+                                     <button type="submit" class="btn btn-primary-custom m-0 px-4" id="chatInputSubmitBtn">
+                                         <i class="fa-solid fa-paper-plane"></i>
+                                     </button>
+                                 </form>
+                                 <div id="closedTicketMessage" class="alert alert-secondary text-center d-none m-3" style="border-radius: 12px; font-weight: 500;">
+                                     <i class="fa-solid fa-lock me-2"></i>This ticket has been closed by support.
+                                 </div>
                             </div>
                         </div>
                     </div>

@@ -1200,20 +1200,65 @@ document.addEventListener('DOMContentLoaded', () => {
             });
     }
 
-    function handleCreateTicket(e) {
+    async function handleCreateTicket(e) {
         e.preventDefault();
         const title = document.getElementById('ticketTitle').value.trim();
         const category = document.getElementById('ticketCategory').value;
         const message = document.getElementById('ticketMessage').value.trim();
+        const fileInput = document.getElementById('ticketProofInput');
 
         const submitBtn = document.getElementById('submitTicketBtn');
         submitBtn.disabled = true;
         submitBtn.innerHTML = '<span class="spinner-border spinner-border-sm me-2"></span>Sending...';
 
+        let proof_image = null;
+
+        if (fileInput && fileInput.files && fileInput.files[0]) {
+            const file = fileInput.files[0];
+            if (file.size > 5 * 1024 * 1024) {
+                showAlert('Screenshot is too large. Max size allowed is 5 MB.', 'danger');
+                submitBtn.disabled = false;
+                submitBtn.innerHTML = '<i class="fa-solid fa-paper-plane me-2"></i>Send Support Ticket';
+                return;
+            }
+            const allowedTypes = ['image/jpeg', 'image/jpg', 'image/png', 'image/webp'];
+            if (!allowedTypes.includes(file.type)) {
+                showAlert('Invalid file type. Only JPG, JPEG, PNG, and WEBP formats are allowed.', 'danger');
+                submitBtn.disabled = false;
+                submitBtn.innerHTML = '<i class="fa-solid fa-paper-plane me-2"></i>Send Support Ticket';
+                return;
+            }
+
+            const formData = new FormData();
+            formData.append('file', file);
+
+            try {
+                const uploadRes = await authFetch('/api/tickets/upload', {
+                    method: 'POST',
+                    body: formData
+                }).then(r => r.json());
+
+                if (uploadRes.success) {
+                    proof_image = uploadRes.filePath;
+                    showAlert('Image uploaded successfully.', 'success');
+                } else {
+                    showAlert('Image upload failed: ' + uploadRes.message, 'danger');
+                    submitBtn.disabled = false;
+                    submitBtn.innerHTML = '<i class="fa-solid fa-paper-plane me-2"></i>Send Support Ticket';
+                    return;
+                }
+            } catch (err) {
+                showAlert('Image upload connection error: ' + err.message, 'danger');
+                submitBtn.disabled = false;
+                submitBtn.innerHTML = '<i class="fa-solid fa-paper-plane me-2"></i>Send Support Ticket';
+                return;
+            }
+        }
+
         authFetch('/api/tickets', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ title, category, message })
+            body: JSON.stringify({ title, category, message, proof_image })
         })
         .then(res => res.json())
         .then(data => {
@@ -1221,6 +1266,7 @@ document.addEventListener('DOMContentLoaded', () => {
                 showAlert('Support ticket created successfully!', 'success');
                 document.getElementById('ticketTitle').value = '';
                 document.getElementById('ticketMessage').value = '';
+                if (fileInput) fileInput.value = '';
                 loadTickets();
             } else {
                 showAlert(data.message, 'danger');
@@ -1230,22 +1276,101 @@ document.addEventListener('DOMContentLoaded', () => {
         });
     }
 
+    let realtimeChannel = null;
+    let supabaseClient = null;
+
+    async function initSupabaseClient() {
+        if (supabaseClient) return supabaseClient;
+        try {
+            const configRes = await fetch('/api/auth/config');
+            const config = await configRes.json();
+            if (config.supabaseUrl && config.supabaseKey) {
+                supabaseClient = supabase.createClient(config.supabaseUrl, config.supabaseKey);
+            }
+        } catch (e) {
+            console.error('Realtime init error:', e);
+        }
+        return supabaseClient;
+    }
+
     window.openTicketChat = function(ticketId, ticketTitle, ticketStatus) {
         activeChatTicketId = ticketId;
         chatTicketTitle.textContent = ticketTitle;
         chatTicketStatus.textContent = ticketStatus;
         chatTicketStatus.className = `badge ${ticketStatus === 'OPEN' ? 'bg-success' : 'bg-secondary'}`;
 
+        const closedMsgEl = document.getElementById('closedTicketMessage');
+        if (ticketStatus === 'CLOSED') {
+            chatInputMessage.disabled = true;
+            document.getElementById('chatInputSubmitBtn').disabled = true;
+            closedMsgEl.classList.remove('d-none');
+        } else {
+            chatInputMessage.disabled = false;
+            document.getElementById('chatInputSubmitBtn').disabled = false;
+            closedMsgEl.classList.add('d-none');
+        }
+
         ticketListCard.classList.add('d-none');
         ticketChatCard.classList.remove('d-none');
 
         loadChatMessages(ticketId);
 
-        // Auto-poll ticket chat every 4 seconds
+        // Auto-poll fallback
         if (chatInterval) clearInterval(chatInterval);
         chatInterval = setInterval(() => {
             loadChatMessages(ticketId);
         }, 4000);
+
+        // Set up Supabase Realtime channel listener
+        initSupabaseClient().then(client => {
+            if (!client) return;
+            if (realtimeChannel) {
+                client.removeChannel(realtimeChannel);
+            }
+            realtimeChannel = client
+                .channel(`public:ticket_messages:ticket_id=eq.${ticketId}`)
+                .on('postgres_changes', {
+                    event: '*',
+                    schema: 'public',
+                    table: 'ticket_messages',
+                    filter: `ticket_id=eq.${ticketId}`
+                }, (payload) => {
+                    loadChatMessages(ticketId);
+                })
+                .on('postgres_changes', {
+                    event: 'UPDATE',
+                    schema: 'public',
+                    table: 'tickets',
+                    filter: `id=eq.${ticketId}`
+                }, (payload) => {
+                    if (payload.new && payload.new.status) {
+                        chatTicketStatus.textContent = payload.new.status;
+                        chatTicketStatus.className = `badge ${payload.new.status === 'OPEN' ? 'bg-success' : 'bg-secondary'}`;
+                        if (payload.new.status === 'CLOSED') {
+                            chatInputMessage.disabled = true;
+                            document.getElementById('chatInputSubmitBtn').disabled = true;
+                            closedMsgEl.classList.remove('d-none');
+                        }
+                    }
+                })
+                .subscribe();
+        });
+    };
+
+    window.viewTicketProof = function(path) {
+        if (!path) return;
+        authFetch(`/api/tickets/signed-url?path=${encodeURIComponent(path)}`)
+            .then(res => res.json())
+            .then(data => {
+                if (data.success) {
+                    const modal = new bootstrap.Modal(document.getElementById('viewProofModal'));
+                    document.getElementById('viewProofModalLabel').textContent = "Ticket Attachment Preview";
+                    document.getElementById('modalProofImg').src = data.signedUrl;
+                    modal.show();
+                } else {
+                    showAlert('Error loading image preview: ' + data.message, 'danger');
+                }
+            });
     };
 
     function loadChatMessages(ticketId) {
@@ -1254,6 +1379,36 @@ document.addEventListener('DOMContentLoaded', () => {
             .then(data => {
                 if (data.success) {
                     chatMessages.innerHTML = '';
+
+                    // Check status sync
+                    if (data.status) {
+                        chatTicketStatus.textContent = data.status;
+                        chatTicketStatus.className = `badge ${data.status === 'OPEN' ? 'bg-success' : 'bg-secondary'}`;
+                        const closedMsgEl = document.getElementById('closedTicketMessage');
+                        if (data.status === 'CLOSED') {
+                            chatInputMessage.disabled = true;
+                            document.getElementById('chatInputSubmitBtn').disabled = true;
+                            closedMsgEl.classList.remove('d-none');
+                        } else {
+                            chatInputMessage.disabled = false;
+                            document.getElementById('chatInputSubmitBtn').disabled = false;
+                            closedMsgEl.classList.add('d-none');
+                        }
+                    }
+
+                    // Display attachment proof at top of messages container if exists
+                    if (data.proof_image) {
+                        const attachmentDiv = document.createElement('div');
+                        attachmentDiv.className = 'p-3 mb-3 border rounded bg-white';
+                        attachmentDiv.innerHTML = `
+                            <div class="small text-secondary fw-semibold mb-2"><i class="fa-solid fa-paperclip me-1"></i>Ticket Attachment:</div>
+                            <button class="btn btn-sm btn-outline-primary d-inline-flex align-items-center" onclick="viewTicketProof('${data.proof_image}')" style="border-radius: 8px;">
+                                <i class="fa-solid fa-eye me-1"></i>Preview Screenshot
+                            </button>
+                        `;
+                        chatMessages.appendChild(attachmentDiv);
+                    }
+
                     data.messages.forEach(m => {
                         const div = document.createElement('div');
                         const isSelf = m.sender_id === lastProfileData.id;

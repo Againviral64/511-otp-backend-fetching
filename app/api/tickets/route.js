@@ -32,7 +32,7 @@ export async function GET(request) {
 export async function POST(request) {
     try {
         const user = await verifyAuth(request);
-        const { title, category, message } = await request.json();
+        const { title, category, message, proof_image } = await request.json();
 
         if (!title || !category || !message) {
             return NextResponse.json({ success: false, message: 'All fields are required.' });
@@ -46,6 +46,7 @@ export async function POST(request) {
                 title,
                 category,
                 status: 'OPEN',
+                proof_image: proof_image || null,
                 created_at: new Date().toISOString()
             };
             mockTickets.unshift(newTicket);
@@ -70,7 +71,8 @@ export async function POST(request) {
                 user_id: user.id,
                 title,
                 category,
-                status: 'OPEN'
+                status: 'OPEN',
+                proof_image: proof_image || null
             }])
             .select()
             .maybeSingle();

@@ -1,30 +1,29 @@
 import { NextResponse } from 'next/server';
 import supabase, { isMock } from '@/lib/db';
-import { verifyAuth } from '@/lib/middleware';
+import { verifyAdmin } from '@/lib/middleware';
 
-// Local Memory mock messages fallback
-let mockTicketMessages = [];
+// Shared mock messages database
+export let mockAdminTicketMessages = [
+    { id: 1, ticket_id: 1, sender_id: 'mock-2', sender_email: 'partner@gmail.com', message: 'Check ticket received', created_at: new Date(Date.now() - 1000 * 60 * 10).toISOString() },
+    { id: 2, ticket_id: 2, sender_id: 'mock-2', sender_email: 'partner@gmail.com', message: 'zian test', created_at: new Date(Date.now() - 1000 * 60 * 2).toISOString() }
+];
 
 export async function GET(request, { params }) {
     try {
-        const user = await verifyAuth(request);
+        await verifyAdmin(request);
         const { id } = await params;
         const ticketId = parseInt(id);
 
         if (isMock || !supabase) {
-            const ticketMessages = mockTicketMessages.filter(m => m.ticket_id === ticketId);
-            return NextResponse.json({ success: true, messages: ticketMessages });
+            const filtered = mockAdminTicketMessages.filter(m => m.ticket_id === ticketId);
+            return NextResponse.json({ success: true, messages: filtered });
         }
 
         const { data: ticket } = await supabase
             .from('tickets')
-            .select('user_id, status, proof_image')
+            .select('status, proof_image')
             .eq('id', ticketId)
             .maybeSingle();
-
-        if (!ticket || ticket.user_id !== user.id) {
-            return NextResponse.json({ success: false, message: 'Unauthorized' }, { status: 403 });
-        }
 
         const { data, error } = await supabase
             .from('ticket_messages')
@@ -55,8 +54,8 @@ export async function GET(request, { params }) {
         return NextResponse.json({ 
             success: true, 
             messages: mapped, 
-            status: ticket.status, 
-            proof_image: ticket.proof_image 
+            status: ticket ? ticket.status : 'OPEN', 
+            proof_image: ticket ? ticket.proof_image : null 
         });
     } catch (err) {
         return NextResponse.json({ success: false, message: err.message }, { status: 401 });
@@ -65,7 +64,7 @@ export async function GET(request, { params }) {
 
 export async function POST(request, { params }) {
     try {
-        const user = await verifyAuth(request);
+        const adminUser = await verifyAdmin(request);
         const { id } = await params;
         const ticketId = parseInt(id);
         const { message } = await request.json();
@@ -75,33 +74,23 @@ export async function POST(request, { params }) {
         }
 
         if (isMock || !supabase) {
-            const newMessage = {
-                id: mockTicketMessages.length + 1,
+            const newMsg = {
+                id: mockAdminTicketMessages.length + 1,
                 ticket_id: ticketId,
-                sender_id: user.id,
-                sender_email: user.email,
+                sender_id: adminUser.id,
+                sender_email: adminUser.email,
                 message: message.trim(),
                 created_at: new Date().toISOString()
             };
-            mockTicketMessages.push(newMessage);
+            mockAdminTicketMessages.push(newMsg);
             return NextResponse.json({ success: true });
-        }
-
-        const { data: ticket } = await supabase
-            .from('tickets')
-            .select('user_id')
-            .eq('id', ticketId)
-            .maybeSingle();
-
-        if (!ticket || ticket.user_id !== user.id) {
-            return NextResponse.json({ success: false, message: 'Unauthorized' }, { status: 403 });
         }
 
         const { error } = await supabase
             .from('ticket_messages')
             .insert([{
                 ticket_id: ticketId,
-                sender_id: user.id,
+                sender_id: adminUser.id,
                 message: message.trim()
             }]);
 
