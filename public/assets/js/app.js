@@ -55,6 +55,27 @@ document.addEventListener('DOMContentLoaded', () => {
     const waitingStatusText = document.getElementById('waitingStatusText');
     const waitingSpinner = document.getElementById('waitingSpinner');
 
+    function setOtpDisplayValue(value) {
+        if (!value || value === '------' || value === 'Not Received') {
+            otpCodeDisplay.textContent = '------';
+            otpCodeDisplay.style.fontSize = '';
+            otpCodeDisplay.style.letterSpacing = '4px';
+        } else {
+            otpCodeDisplay.textContent = value;
+            if (value.length > 8) {
+                otpCodeDisplay.style.fontSize = '1.15rem';
+                otpCodeDisplay.style.letterSpacing = 'normal';
+                otpCodeDisplay.classList.remove('display-4');
+                otpCodeDisplay.classList.add('fs-5');
+            } else {
+                otpCodeDisplay.style.fontSize = '';
+                otpCodeDisplay.style.letterSpacing = '4px';
+                otpCodeDisplay.classList.add('display-4');
+                otpCodeDisplay.classList.remove('fs-5');
+            }
+        }
+    }
+
 
 
     // DOM Elements: Services list
@@ -473,7 +494,7 @@ document.addEventListener('DOMContentLoaded', () => {
                 orderStatusBadge.textContent = 'Not Received';
                 orderStatusBadge.className = 'badge-custom badge-pending';
 
-                otpCodeDisplay.textContent = '------';
+                setOtpDisplayValue('------');
                 copyOtpBtn.disabled = true;
                 endActivationBtn.style.display = 'block';
                 smsStatusContainer.className = 'sms-status-container glow-pending';
@@ -507,7 +528,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
         pollInterval = setInterval(() => {
             pollSmsStatus(orderId);
-        }, 5000);
+        }, 3000);
 
         countdownInterval = setInterval(() => {
             countdownSeconds--;
@@ -527,7 +548,7 @@ document.addEventListener('DOMContentLoaded', () => {
             .then(data => {
                 if (data.success) {
                     if (data.otp && data.otp !== '------' && data.otp !== 'Not Received') {
-                        otpCodeDisplay.textContent = data.otp;
+                        setOtpDisplayValue(data.otp);
                         copyOtpBtn.disabled = false;
                         waitingStatusText.textContent = 'OTP received! Checking for subsequent messages...';
                         loadHistory();
@@ -596,7 +617,7 @@ document.addEventListener('DOMContentLoaded', () => {
                 orderStatusBadge.textContent = 'Not Received';
                 orderStatusBadge.className = 'badge-custom badge-pending';
 
-                otpCodeDisplay.textContent = latestOrder.otp && latestOrder.otp !== 'Not Received' && latestOrder.otp !== '------' ? latestOrder.otp : '------';
+                setOtpDisplayValue(latestOrder.otp && latestOrder.otp !== 'Not Received' && latestOrder.otp !== '------' ? latestOrder.otp : '------');
                 copyOtpBtn.disabled = !(latestOrder.otp && latestOrder.otp !== 'Not Received' && latestOrder.otp !== '------');
                 endActivationBtn.style.display = 'block';
                 smsStatusContainer.className = 'sms-status-container glow-pending';
@@ -653,10 +674,10 @@ document.addEventListener('DOMContentLoaded', () => {
                 waitingStatusText.textContent = data.status === 'COMPLETED' ? 'Activation complete.' : 'Activation canceled.';
                 
                 if (data.otp && data.otp !== 'Not Received') {
-                    otpCodeDisplay.textContent = data.otp;
+                    setOtpDisplayValue(data.otp);
                     copyOtpBtn.disabled = false;
                 } else {
-                    otpCodeDisplay.textContent = '------';
+                    setOtpDisplayValue('------');
                     copyOtpBtn.disabled = true;
                 }
 

@@ -62,17 +62,15 @@ export async function GET(request) {
 
         if (isManualLink || targetSmsUrl) {
             const response = await makeRequest(targetSmsUrl);
-            if (response) {
-                const match = response.match(/\b\d{4,8}\b/);
-                if (match) {
-                    foundOtp = match[0];
-                }
+            if (response && !response.toLowerCase().includes('no message') && !response.toLowerCase().includes('no sms')) {
+                const parts = response.split('|');
+                foundOtp = parts[0].trim(); // Save the full SMS message!
             }
         } else {
             if (isMock) {
                 const elapsed = (Date.now() - new Date(orderRow.created_at).getTime()) / 1000;
                 if (elapsed >= 10 && elapsed <= 300) {
-                    const simulatedOtp = (Math.floor(100000 + Math.random() * 900000)).toString();
+                    const simulatedOtp = `MOCK-CODE-${Math.floor(100000 + Math.random() * 900000)}`;
                     if (!orderRow.otp || orderRow.otp === '------' || orderRow.otp === 'Not Received') {
                         foundOtp = simulatedOtp;
                     } else {
@@ -91,10 +89,7 @@ export async function GET(request) {
                     try {
                         const json = JSON.parse(response);
                         if (json.code === 200 && json.data && json.data.msg) {
-                            const match = json.data.msg.match(/\b\d{4,8}\b/);
-                            if (match) {
-                                foundOtp = match[0];
-                            }
+                            foundOtp = json.data.msg; // Save the full message!
                         }
                     } catch (e) {
                         // Fallthrough

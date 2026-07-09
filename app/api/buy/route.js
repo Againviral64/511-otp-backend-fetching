@@ -99,7 +99,11 @@ export async function POST(request) {
                 const buyJson = JSON.parse(buyResponse);
                 if (buyJson.code === 200 && buyJson.data && buyJson.data.sn) {
                     orderId = buyJson.data.sn;
-                    number = buyJson.data.number[0];
+                    let rawNum = buyJson.data.number[0];
+                    if (rawNum && !rawNum.startsWith('+')) {
+                        rawNum = '+' + rawNum;
+                    }
+                    number = rawNum;
                 } else {
                     return NextResponse.json({ success: false, message: buyJson.message || 'Gateway purchase failed.' });
                 }
