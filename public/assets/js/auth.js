@@ -1,5 +1,15 @@
 // public/assets/js/auth.js
 document.addEventListener('DOMContentLoaded', () => {
+    // 0. Extract and store OAuth tokens from URL hash if returning from redirect
+    if (window.location.hash) {
+        const hashParams = new URLSearchParams(window.location.hash.substring(1));
+        const accessToken = hashParams.get('access_token');
+        if (accessToken) {
+            localStorage.setItem('nova_session_token', accessToken);
+            window.history.replaceState(null, null, window.location.pathname);
+        }
+    }
+
     const sessionToken = localStorage.getItem('nova_session_token');
     const userEmail = localStorage.getItem('nova_user_email');
     
@@ -22,6 +32,9 @@ document.addEventListener('DOMContentLoaded', () => {
         .then(res => res.json())
         .then(data => {
             if (data.success && data.profile) {
+                if (data.profile.email) {
+                    localStorage.setItem('nova_user_email', data.profile.email);
+                }
                 const isAdmin = data.profile.is_admin || (data.profile.role && data.profile.role.toLowerCase() === 'admin');
                 if (isAdmin) {
                     // Admins belong in /admin

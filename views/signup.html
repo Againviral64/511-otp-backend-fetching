@@ -150,7 +150,10 @@
                                 redirectTo: window.location.origin + '/dashboard'
                             }
                         });
-                        if (error) showAlert(error.message, 'danger');
+                        if (error) {
+                            console.error('Google OAuth signup error:', error);
+                            showAlert(error.message || JSON.stringify(error), 'danger');
+                        }
                     });
 
                     // Handle Form Signup
@@ -169,6 +172,24 @@
                         submitBtn.disabled = true;
                         submitBtn.innerHTML = '<span class="spinner-border spinner-border-sm me-2" role="status" aria-hidden="true"></span>Registering...';
 
+                        // Check if email already exists in profiles
+                        try {
+                            const { data: existingProfile, error: checkError } = await supabaseClient
+                                .from('profiles')
+                                .select('id')
+                                .eq('email', email)
+                                .maybeSingle();
+
+                            if (existingProfile) {
+                                showAlert('An account with this email already exists. Please log in.', 'danger');
+                                submitBtn.disabled = false;
+                                submitBtn.innerHTML = '<i class="fa-solid fa-user-plus me-2"></i>Register Account';
+                                return;
+                            }
+                        } catch (err) {
+                            console.warn('Profile existence check skipped due to error:', err);
+                        }
+
                         const { data, error } = await supabaseClient.auth.signUp({
                             email,
                             password,
@@ -180,7 +201,8 @@
                         });
 
                         if (error) {
-                            showAlert(error.message, 'danger');
+                            console.error('Supabase signup error:', error);
+                            showAlert(error.message || JSON.stringify(error), 'danger');
                             submitBtn.disabled = false;
                             submitBtn.innerHTML = '<i class="fa-solid fa-user-plus me-2"></i>Register Account';
                         } else {
@@ -192,7 +214,8 @@
                     });
                 })
                 .catch(err => {
-                    showAlert(err.message, 'danger');
+                    console.error('Config initialization error:', err);
+                    showAlert(err.message || JSON.stringify(err), 'danger');
                 });
         });
     </script>

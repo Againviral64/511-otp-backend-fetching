@@ -166,7 +166,8 @@
                         const { data, error } = await supabaseClient.auth.signInWithPassword({ email, password });
 
                         if (error) {
-                            showAlert(error.message, 'danger');
+                            console.error('Supabase admin auth error:', error);
+                            showAlert(error.message || JSON.stringify(error), 'danger');
                             submitBtn.disabled = false;
                             submitBtn.innerHTML = '<i class="fa-solid fa-lock-open me-2"></i>Authenticate Admin';
                             return;
@@ -213,7 +214,8 @@
                     });
                 })
                 .catch(err => {
-                    showAlert(err.message, 'danger');
+                    console.error('Config initialization error:', err);
+                    showAlert(err.message || JSON.stringify(err), 'danger');
                 });
         });
     </script>

@@ -147,7 +147,10 @@
                                 redirectTo: window.location.origin + '/dashboard'
                             }
                         });
-                        if (error) showAlert(error.message, 'danger');
+                        if (error) {
+                            console.error('Google OAuth login error:', error);
+                            showAlert(error.message || JSON.stringify(error), 'danger');
+                        }
                     });
 
                     // 3. Handle Form Login
@@ -162,7 +165,8 @@
                         const { data, error } = await supabaseClient.auth.signInWithPassword({ email, password });
 
                         if (error) {
-                            showAlert(error.message, 'danger');
+                            console.error('Supabase login error:', error);
+                            showAlert(error.message || JSON.stringify(error), 'danger');
                             submitBtn.disabled = false;
                             submitBtn.innerHTML = '<i class="fa-solid fa-right-to-bracket me-2"></i>Sign In';
                         } else {
@@ -195,7 +199,8 @@
                     });
                 })
                 .catch(err => {
-                    showAlert(err.message, 'danger');
+                    console.error('Config initialization error:', err);
+                    showAlert(err.message || JSON.stringify(err), 'danger');
                 });
         });
     </script>

@@ -127,6 +127,24 @@ export async function GET(request) {
                     .from('orders')
                     .update({ status: status, otp: finalOtpVal })
                     .eq('order_id', order_id);
+
+                if (status === 'EXPIRED') {
+                    const { data: profile } = await supabase
+                        .from('profiles')
+                        .select('balance, spend, total_orders')
+                        .eq('id', orderRow.user_id)
+                        .maybeSingle();
+                    if (profile) {
+                        await supabase
+                            .from('profiles')
+                            .update({
+                                balance: parseFloat(profile.balance) + parseFloat(orderRow.price),
+                                spend: Math.max(0, parseFloat(profile.spend) - parseFloat(orderRow.price)),
+                                total_orders: Math.max(0, parseInt(profile.total_orders) - 1)
+                            })
+                            .eq('id', orderRow.user_id);
+                    }
+                }
             } else {
                 const localIdx = mockOrders.findIndex(o => o.order_id === order_id);
                 if (localIdx !== -1) {
@@ -137,14 +155,16 @@ export async function GET(request) {
         } else {
             status = 'PENDING';
             if (foundOtp) {
+                status = 'COMPLETED';
                 if (!isMock && supabase) {
                     await supabase
                         .from('orders')
-                        .update({ otp: finalOtpVal })
+                        .update({ status: 'COMPLETED', otp: finalOtpVal })
                         .eq('order_id', order_id);
                 } else {
                     const localIdx = mockOrders.findIndex(o => o.order_id === order_id);
                     if (localIdx !== -1) {
+                        mockOrders[localIdx].status = 'COMPLETED';
                         mockOrders[localIdx].otp = finalOtpVal;
                     }
                 }

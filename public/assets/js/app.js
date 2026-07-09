@@ -375,6 +375,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
                     availableServices = data.services;
                     renderServicesTable();
+                    restoreActiveOrderIfAny();
                 } else {
                     showAlert(data.message, 'danger');
                 }
@@ -498,9 +499,11 @@ document.addEventListener('DOMContentLoaded', () => {
 
 
 
-    function startPolling(orderId) {
+    function startPolling(orderId, startSeconds) {
         stopIntervals();
-        countdownSeconds = (window.otpExpiryMinutes || 5) * 60;
+        countdownSeconds = startSeconds !== undefined ? startSeconds : (window.otpExpiryMinutes || 5) * 60;
+
+        pollSmsStatus(orderId);
 
         pollInterval = setInterval(() => {
             pollSmsStatus(orderId);
@@ -557,6 +560,7 @@ document.addEventListener('DOMContentLoaded', () => {
         waitingSpinner.classList.add('d-none');
         waitingStatusText.textContent = 'Operation expired.';
         endActivationBtn.style.display = 'none';
+        loadProfile();
         loadHistory();
     }
 
@@ -565,6 +569,44 @@ document.addEventListener('DOMContentLoaded', () => {
         if (countdownInterval) clearInterval(countdownInterval);
         pollInterval = null;
         countdownInterval = null;
+    }
+
+    let hasAttemptedRestore = false;
+    function restoreActiveOrderIfAny() {
+        if (hasAttemptedRestore) return;
+        if (!lastHistoryData || lastHistoryData.length === 0) return;
+        if (window.otpExpiryMinutes === undefined) return;
+
+        hasAttemptedRestore = true;
+        const latestOrder = lastHistoryData[0];
+        if (latestOrder && latestOrder.status === 'PENDING') {
+            const elapsedMs = Date.now() - new Date(latestOrder.created_at).getTime();
+            const expiryMs = (window.otpExpiryMinutes || 4) * 60 * 1000;
+            if (elapsedMs < expiryMs) {
+                currentOrderId = latestOrder.order_id;
+                
+                let formattedNumber = latestOrder.number;
+                if (formattedNumber && !formattedNumber.startsWith('+')) {
+                    formattedNumber = '+' + formattedNumber;
+                }
+                numberDisplay.textContent = formattedNumber;
+                numberDisplay.style.cursor = 'pointer';
+                
+                orderIdDisplay.textContent = latestOrder.order_id;
+                orderStatusBadge.textContent = 'Not Received';
+                orderStatusBadge.className = 'badge-custom badge-pending';
+
+                otpCodeDisplay.textContent = latestOrder.otp && latestOrder.otp !== 'Not Received' && latestOrder.otp !== '------' ? latestOrder.otp : '------';
+                copyOtpBtn.disabled = !(latestOrder.otp && latestOrder.otp !== 'Not Received' && latestOrder.otp !== '------');
+                endActivationBtn.style.display = 'block';
+                smsStatusContainer.className = 'sms-status-container glow-pending';
+
+                waitingSpinner.classList.remove('d-none');
+                
+                const remainingSeconds = Math.floor((expiryMs - elapsedMs) / 1000);
+                startPolling(latestOrder.order_id, remainingSeconds);
+            }
+        }
     }
 
     function handleCopyOtp() {
@@ -646,6 +688,7 @@ document.addEventListener('DOMContentLoaded', () => {
                 if (data.success) {
                     lastHistoryData = data.orders;
                     renderHistoryTable();
+                    restoreActiveOrderIfAny();
                 }
             });
     }
@@ -668,7 +711,7 @@ document.addEventListener('DOMContentLoaded', () => {
                 <td><code>${o.order_id}</code></td>
                 <td>${o.service}</td>
                 <td><strong>${o.number}</strong></td>
-                <td>${formatPrice(parseFloat(o.price))}</td>
+                <td>${formatPrice(parseFloat(o.price) / 278.50)}</td>
                 <td><code class="fs-6">${o.otp || '------'}</code></td>
                 <td class="small text-secondary">${o.formatted_time}</td>
                 <td><span class="badge-custom ${sc}">${statusText}</span></td>

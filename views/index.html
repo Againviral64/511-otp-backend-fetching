@@ -1,6 +1,14 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
+    <script>
+        // Redirect email confirmation link to login page
+        const isConfirmHash = window.location.hash && (window.location.hash.includes('access_token=') || window.location.hash.includes('type=signup'));
+        const isConfirmQuery = window.location.search && (window.location.search.includes('code=') || window.location.search.includes('type=signup'));
+        if (isConfirmHash || isConfirmQuery) {
+            window.location.replace('/login' + window.location.search + window.location.hash);
+        }
+    </script>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Nova OTP Provider - Premium Wholesale OTP Activation Platform</title>

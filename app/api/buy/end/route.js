@@ -48,6 +48,24 @@ export async function POST(request) {
             return NextResponse.json({ success: false, message: updateErr.message });
         }
 
+        if (finalStatus === 'EXPIRED') {
+            const { data: profile } = await supabase
+                .from('profiles')
+                .select('balance, spend, total_orders')
+                .eq('id', order.user_id)
+                .maybeSingle();
+            if (profile) {
+                await supabase
+                    .from('profiles')
+                    .update({
+                        balance: parseFloat(profile.balance) + parseFloat(order.price),
+                        spend: Math.max(0, parseFloat(profile.spend) - parseFloat(order.price)),
+                        total_orders: Math.max(0, parseInt(profile.total_orders) - 1)
+                    })
+                    .eq('id', order.user_id);
+            }
+        }
+
         return NextResponse.json({ success: true, status: finalStatus, otp: finalOtpVal });
     } catch (err) {
         return NextResponse.json({ success: false, message: err.message }, { status: 401 });
