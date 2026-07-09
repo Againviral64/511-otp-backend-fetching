@@ -689,7 +689,10 @@
                         </div>
 
                         <button type="submit" class="btn btn-primary-custom m-0 px-4" id="adminWhatsappSaveBtn" style="border-radius: 10px;">
-                            <i class="fa-solid fa-floppy-disk me-2"></i>Save Settings
+                            <i class="fa-solid fa-floppy-disk me-2"></i>Save Changes
+                        </button>
+                        <button type="button" class="btn btn-outline-secondary m-0 px-4 ms-2" id="adminWhatsappResetBtn" style="border-radius: 10px;">
+                            <i class="fa-solid fa-arrow-rotate-left me-2"></i>Reset
                         </button>
                     </form>
                 </div>
@@ -2288,9 +2291,9 @@
                     .then(res => res.json())
                     .then(data => {
                         saveBtn.disabled = false;
-                        saveBtn.innerHTML = '<i class="fa-solid fa-floppy-disk me-2"></i>Save Settings';
+                        saveBtn.innerHTML = '<i class="fa-solid fa-floppy-disk me-2"></i>Save Changes';
                         if (data.success) {
-                            showAlert('WhatsApp support settings saved successfully!', 'success');
+                            showAlert('✅ WhatsApp settings updated successfully.', 'success');
                             loadAdminWhatsappSupportSettings();
                         } else {
                             showAlert(data.message || 'Failed to update WhatsApp settings.', 'danger');
@@ -2298,9 +2301,16 @@
                     })
                     .catch(err => {
                         saveBtn.disabled = false;
-                        saveBtn.innerHTML = '<i class="fa-solid fa-floppy-disk me-2"></i>Save Settings';
+                        saveBtn.innerHTML = '<i class="fa-solid fa-floppy-disk me-2"></i>Save Changes';
                         showAlert('Error saving WhatsApp settings: ' + err.message, 'danger');
                     });
+                });
+            }
+
+            const adminWhatsappResetBtn = document.getElementById('adminWhatsappResetBtn');
+            if (adminWhatsappResetBtn) {
+                adminWhatsappResetBtn.addEventListener('click', () => {
+                    loadAdminWhatsappSupportSettings();
                 });
             }
 

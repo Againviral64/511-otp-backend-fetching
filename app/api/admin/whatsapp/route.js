@@ -19,8 +19,8 @@ export async function GET(request) {
 
         const { data, error } = await supabase
             .from('whatsapp_settings')
-            .select('whatsapp_number, default_message, is_enabled')
-            .eq('id', 1)
+            .select('id, whatsapp_number, default_message, is_enabled')
+            .limit(1)
             .maybeSingle();
 
         if (error) throw error;
@@ -59,7 +59,7 @@ export async function POST(request) {
         const { data: existing } = await supabase
             .from('whatsapp_settings')
             .select('id')
-            .eq('id', 1)
+            .limit(1)
             .maybeSingle();
 
         if (existing) {
@@ -71,13 +71,12 @@ export async function POST(request) {
                     is_enabled: !!is_enabled,
                     updated_at: new Date().toISOString()
                 })
-                .eq('id', 1);
+                .eq('id', existing.id);
             if (error) throw error;
         } else {
             const { error } = await supabase
                 .from('whatsapp_settings')
                 .insert([{
-                    id: 1,
                     whatsapp_number: numberStr,
                     default_message,
                     is_enabled: !!is_enabled,
@@ -86,7 +85,7 @@ export async function POST(request) {
             if (error) throw error;
         }
 
-        return NextResponse.json({ success: true, message: 'WhatsApp configuration updated successfully!' });
+        return NextResponse.json({ success: true, message: 'WhatsApp settings updated successfully.' });
     } catch (e) {
         return NextResponse.json({ success: false, message: 'Failed to update settings: ' + e.message }, { status: 500 });
     }

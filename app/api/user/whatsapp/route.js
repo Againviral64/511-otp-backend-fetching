@@ -18,7 +18,7 @@ export async function GET(request) {
         const { data, error } = await supabase
             .from('whatsapp_settings')
             .select('whatsapp_number, default_message, is_enabled')
-            .eq('id', 1)
+            .limit(1)
             .maybeSingle();
 
         if (error) {
