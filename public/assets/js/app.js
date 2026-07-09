@@ -984,25 +984,21 @@ document.addEventListener('DOMContentLoaded', () => {
         let proof_image = null;
 
         if (file) {
-            // Upload to Supabase Storage
+            // Upload to server-side upload endpoint
             try {
-                const config = await authFetch('/api/auth/config').then(res => res.json());
-                const supabaseClient = supabase.createClient(config.supabaseUrl, config.supabaseKey);
-                
-                const fileExt = file.name.split('.').pop();
-                const uniqueDepId = `DEP-${Math.floor(100000 + Math.random() * 900000)}`;
-                const userId = lastProfileData?.id || 'unauthenticated';
-                const filePath = `${userId}/${uniqueDepId}/screenshot.${fileExt}`;
+                const formData = new FormData();
+                formData.append('file', file);
 
-                const { data, error: uploadErr } = await supabaseClient.storage
-                    .from('deposit-proofs')
-                    .upload(filePath, file);
+                const uploadRes = await authFetch('/api/deposit/upload', {
+                    method: 'POST',
+                    body: formData
+                }).then(res => res.json());
 
-                if (uploadErr) {
-                    throw new Error('Supabase Storage Upload failed: ' + uploadErr.message);
+                if (!uploadRes.success) {
+                    throw new Error('Supabase Storage Upload failed: ' + uploadRes.message);
                 }
 
-                proof_image = filePath;
+                proof_image = uploadRes.filePath;
             } catch (err) {
                 showAlert(err.message, 'danger');
                 submitDepositBtn.disabled = false;
