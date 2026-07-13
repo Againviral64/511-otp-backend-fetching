@@ -22,6 +22,30 @@ const nextConfig = {
       },
     ];
   },
+  async rewrites() {
+    return [
+      {
+        source: '/style.css',
+        destination: '/tracking-frontend/style.css',
+      },
+      {
+        source: '/app.js',
+        destination: '/tracking-frontend/app.js',
+      },
+      {
+        source: '/',
+        destination: '/tracking-frontend/index.html',
+      },
+      {
+        source: '/track',
+        destination: '/tracking-frontend/track.html',
+      },
+      {
+        source: '/:key([a-zA-Z0-9]{12})',
+        destination: '/tracking-frontend/track.html',
+      },
+    ];
+  },
 };
 
 export default nextConfig;
