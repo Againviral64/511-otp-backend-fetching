@@ -37,6 +37,7 @@ export async function POST(request) {
         let costPrice = 0.400;
         let appName = 'OTP App';
         let groupName = 'Operators Group';
+        let pkrRate = 278.50; // default fallback
 
         // 1. Fetch dynamic pricing from database services table
         let expiryDuration = 4;
@@ -58,15 +59,25 @@ export async function POST(request) {
                 return NextResponse.json({ success: false, message: 'This service product is currently unavailable.' });
             }
 
-            // Fetch dynamic system expiry config from settings table
+            // Fetch dynamic system expiry config & exchange rate from settings table
             try {
-                const { data: configRow } = await supabase
+                const { data: configRows } = await supabase
                     .from('settings')
-                    .select('value')
-                    .eq('key', 'otp_expiry_duration')
-                    .maybeSingle();
-                if (configRow) {
-                    expiryDuration = parseInt(configRow.value) || 4;
+                    .select('key, value')
+                    .in('key', ['otp_expiry_duration', 'exchange_rate_PKR']);
+
+                if (configRows) {
+                    const expiryRow = configRows.find(r => r.key === 'otp_expiry_duration');
+                    const rateRow = configRows.find(r => r.key === 'exchange_rate_PKR');
+                    if (expiryRow) {
+                        expiryDuration = parseInt(expiryRow.value) || 4;
+                    }
+                    if (rateRow) {
+                        const parsedRate = parseFloat(rateRow.value);
+                        if (!isNaN(parsedRate)) {
+                            pkrRate = parsedRate;
+                        }
+                    }
                 }
             } catch (e) {
                 console.error('Failed to query settings table:', e.message);
@@ -81,7 +92,7 @@ export async function POST(request) {
         }
 
         // 2. Validate User Balance
-        const sellPricePKR = sellPrice * 278.50;
+        const sellPricePKR = sellPrice * pkrRate;
         if (user.balance < sellPricePKR) {
             return NextResponse.json({ success: false, message: 'Insufficient balance. Please deposit funds.', error_type: 'LOW_BALANCE' });
         }
@@ -105,6 +116,7 @@ export async function POST(request) {
                 otp: null,
                 status: 'PENDING',
                 price: sellPricePKR,
+                cost_price: costPrice,
                 sms_url: null,
                 is_bulk: is_bulk === true,
                 created_at: new Date().toISOString()
@@ -183,6 +195,7 @@ export async function POST(request) {
                     number: number,
                     status: 'PENDING',
                     price: sellPricePKR,
+                    cost_price: costPrice,
                     sms_url: smsUrl,
                     product_id: service,
                     tracking_key: trackingKey

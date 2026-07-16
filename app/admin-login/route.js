@@ -6,7 +6,12 @@ export async function GET() {
         const filePath = path.join(process.cwd(), 'views/admin-login.html');
         const html = fs.readFileSync(filePath, 'utf8');
         return new Response(html, {
-            headers: { 'Content-Type': 'text/html' }
+            headers: { 
+                'Content-Type': 'text/html',
+                'Cache-Control': 'no-store, no-cache, must-revalidate, proxy-revalidate',
+                'Pragma': 'no-cache',
+                'Expires': '0'
+            }
         });
     } catch (err) {
         return new Response('Page Not Found', { status: 404 });

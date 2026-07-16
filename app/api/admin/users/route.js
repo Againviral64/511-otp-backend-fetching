@@ -91,14 +91,22 @@ export async function POST(request) {
 
             if (updateErr) throw updateErr;
 
+            // Fetch PKR exchange rate dynamically from settings table
+            const { data: exchangeRateSetting } = await supabase
+                .from('settings')
+                .select('value')
+                .eq('key', 'exchange_rate_PKR')
+                .maybeSingle();
+
+            const pkrRate = exchangeRateSetting ? parseFloat(exchangeRateSetting.value) : 278.50;
+
             // Log adjustment inside manual deposits tracking table (Base amount is in USD equiv)
-            // Divide by 278.50 to get USD value
             const { error: logErr } = await supabase
                 .from('deposits')
                 .insert([{
                     user_id: user_id,
                     method: 'ADMIN_ADJUSTMENT',
-                    amount: adjAmount / 278.50,
+                    amount: adjAmount / pkrRate,
                     tx_id: `ADJ-${Date.now()}-${Math.floor(100 + Math.random() * 900)}`,
                     status: 'APPROVED',
                     payment_note: reason || 'Manual Admin Balance Adjustment'

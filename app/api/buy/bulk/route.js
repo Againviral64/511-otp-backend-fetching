@@ -115,6 +115,7 @@ export async function POST(request) {
                     otp: null,
                     status: 'PENDING',
                     price: sellPricePKR,
+                    cost_price: costPrice,
                     sms_url: null,
                     product_id: service,
                     is_bulk: true,
@@ -190,6 +191,7 @@ export async function POST(request) {
                             number: number,
                             status: 'PENDING',
                             price: sellPricePKR,
+                            cost_price: costPrice,
                             sms_url: smsUrl,
                             product_id: service,
                             tracking_key: trackingKey

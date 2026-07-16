@@ -27,6 +27,7 @@ export async function GET(request) {
             .maybeSingle();
 
         if (error || !profile) {
+            console.error('profile API: Failed to retrieve profile. error:', error ? error.message : 'No profile found in database', 'user_id:', user.id);
             return NextResponse.json({ success: false, message: 'Failed to retrieve profile stats.' });
         }
 

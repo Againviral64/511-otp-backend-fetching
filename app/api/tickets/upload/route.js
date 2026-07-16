@@ -1,9 +1,17 @@
 import { NextResponse } from 'next/server';
 import supabase, { isMock } from '@/lib/db';
 import { verifyAuth } from '@/lib/middleware';
+import { checkRateLimit, RATE_LIMITS, getClientKey } from '@/lib/rate-limit';
 
 export async function POST(request) {
     try {
+        // Rate limit check
+        const clientKey = getClientKey(request);
+        const limit = checkRateLimit(`upload_tickets:${clientKey}`, RATE_LIMITS.UPLOADS.maxRequests, RATE_LIMITS.UPLOADS.windowMs);
+        if (!limit.allowed) {
+            return NextResponse.json({ success: false, message: `Too many upload attempts. Please wait ${Math.ceil(limit.retryAfterMs / 1000)} seconds.` }, { status: 429 });
+        }
+
         const user = await verifyAuth(request);
         const formData = await request.formData();
         const file = formData.get('file');

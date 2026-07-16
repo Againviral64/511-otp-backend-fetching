@@ -42,18 +42,39 @@ export async function POST(request) {
         const generatedTxId = tx_id || `ADM-${Date.now()}`;
         const finalComments = comments || 'Direct deposit by admin';
         
-        const { error: logError } = await supabase
-            .from('deposits')
-            .insert([{
-                user_id: targetUser.id,
-                user_email: targetUser.email,
-                amount: depositAmount,
-                method: 'ADMIN_DIRECT',
-                tx_id: generatedTxId,
-                screenshot_url: null,
-                status: 'APPROVED',
-                created_at: new Date().toISOString()
-            }]);
+        let logError = null;
+        try {
+            // Try inserting using 'account_name' first (in case table has been renamed)
+            const { error } = await supabase
+                .from('deposits')
+                .insert([{
+                    user_id: targetUser.id,
+                    amount: depositAmount,
+                    currency: 'PKR',
+                    method: 'ADMIN_DIRECT',
+                    account_name: generatedTxId,
+                    payment_note: finalComments,
+                    status: 'APPROVED'
+                }]);
+            if (error && (error.code === 'PGRST204' || error.message.includes('account_name') || error.message.includes('column'))) {
+                throw new Error('Fallback to tx_id');
+            }
+            logError = error;
+        } catch (dbErr) {
+            // Fall back to original 'tx_id' column schema
+            const { error } = await supabase
+                .from('deposits')
+                .insert([{
+                    user_id: targetUser.id,
+                    amount: depositAmount,
+                    currency: 'PKR',
+                    method: 'ADMIN_DIRECT',
+                    tx_id: generatedTxId,
+                    payment_note: finalComments,
+                    status: 'APPROVED'
+                }]);
+            logError = error;
+        }
 
         if (logError) {
             console.error('Direct deposit log insert warning:', logError.message);

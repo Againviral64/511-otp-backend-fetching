@@ -41,6 +41,11 @@ export async function POST(request) {
                 .eq('id', dep.user_id)
                 .maybeSingle();
 
+            // Fetch dynamic exchange rates from settings table
+            const { data: dbSettings } = await supabase
+                .from('settings')
+                .select('key, value');
+
             const exchangeRates = {
                 PKR: 278.50,
                 USD: 1.0,
@@ -50,9 +55,22 @@ export async function POST(request) {
                 RUB: 88.30
             };
 
+            if (dbSettings) {
+                dbSettings.forEach(s => {
+                    if (s.key.startsWith('exchange_rate_')) {
+                        const curr = s.key.replace('exchange_rate_', '');
+                        const val = parseFloat(s.value);
+                        if (!isNaN(val)) {
+                            exchangeRates[curr] = val;
+                        }
+                    }
+                });
+            }
+
             const depositCurrency = dep.currency || 'USD';
             const rate = exchangeRates[depositCurrency] || 1.0;
-            const pkrAmountToAdd = parseFloat(dep.amount) * (278.50 / rate);
+            const pkrRate = exchangeRates['PKR'] || 278.50;
+            const pkrAmountToAdd = parseFloat(dep.amount) * (pkrRate / rate);
 
             const currentBal = prof ? parseFloat(prof.balance) : 0.000;
             const targetBal = currentBal + pkrAmountToAdd;

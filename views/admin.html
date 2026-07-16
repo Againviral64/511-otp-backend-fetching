@@ -130,6 +130,40 @@
             padding: 1rem;
             vertical-align: middle;
         }
+        
+        .date-range-container {
+            display: flex !important;
+            flex-direction: row !important;
+            flex-wrap: nowrap !important;
+            align-items: center !important;
+            gap: 6px !important;
+            flex-shrink: 0 !important;
+        }
+
+        /* Mobile-friendly dynamic filter toolbars */
+        @media (max-width: 991px) {
+            .responsive-filter-toolbar {
+                width: 100%;
+                flex-direction: column;
+                align-items: stretch !important;
+                gap: 10px !important;
+                margin-top: 10px;
+            }
+            .responsive-filter-toolbar .input-group,
+            .responsive-filter-toolbar select {
+                width: 100% !important;
+            }
+            .responsive-filter-toolbar .date-range-container {
+                width: 100%;
+            }
+            .responsive-filter-toolbar .date-range-container input {
+                flex: 1;
+                width: 100% !important;
+            }
+            .responsive-filter-toolbar button {
+                width: 100% !important;
+            }
+        }
     </style>
 </head>
 <body class="bg-light">
@@ -194,6 +228,31 @@
             
             <!-- 0. OVERVIEW DASHBOARD TAB -->
             <div class="tab-pane fade show active" id="pane-overview" role="tabpanel">
+                <!-- Date Range Filter Toolbar -->
+                <div class="main-card p-3 mb-4 shadow-sm" style="border-radius: var(--radius); background: #ffffff;">
+                    <div class="d-flex justify-content-between align-items-center flex-wrap gap-3">
+                        <div>
+                            <h5 class="mb-0 fw-bold text-dark"><i class="fa-solid fa-chart-line text-primary me-2"></i>Performance Overview</h5>
+                            <p class="text-secondary mb-0" style="font-size: 0.8rem;">Select custom date range to filter orders, revenue, cost, and profit stats.</p>
+                        </div>
+                        <div class="d-flex align-items-center gap-2 flex-wrap">
+                            <select id="overviewFilter" class="form-select form-select-sm" style="width: 170px; border-radius: 8px; font-weight: 500;">
+                                <option value="today" selected>Today (Karachi Time)</option>
+                                <option value="yesterday">Yesterday</option>
+                                <option value="7days">Last 7 Days</option>
+                                <option value="30days">Last 30 Days</option>
+                                <option value="custom">Custom Date Range</option>
+                            </select>
+                            <div id="customDateRangeInputs" class="d-none align-items-center gap-2">
+                                <input type="date" id="overviewStartDate" class="form-control form-control-sm" style="border-radius: 8px;">
+                                <span class="text-secondary small">to</span>
+                                <input type="date" id="overviewEndDate" class="form-control form-control-sm" style="border-radius: 8px;">
+                                <button id="applyCustomDateBtn" class="btn btn-sm btn-primary px-3" style="border-radius: 8px; font-weight: 600;">Apply</button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
                 <div class="row g-4 mb-4">
                     <!-- Column 1: Today's Orders -->
                     <div class="col-md-3">
@@ -252,6 +311,48 @@
                         <div class="main-card p-4 text-center" style="border-left: 4px solid #0dcaf0;">
                             <div class="text-secondary small fw-bold text-uppercase mb-2">Lifetime Profit</div>
                             <h2 class="fw-bold mb-0 text-info" id="statProfitLifetime">Rs 0.00</h2>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- User Accounts Insights Section -->
+                <div class="mb-3 mt-2">
+                    <h5 class="fw-bold text-dark"><i class="fa-solid fa-users text-primary me-2"></i>User Accounts Insights</h5>
+                </div>
+                <div class="row g-3 mb-4">
+                    <!-- Users With Balance -->
+                    <div class="col-md">
+                        <div class="main-card p-3 text-center" style="border-radius: var(--radius); background: #ffffff;">
+                            <div class="text-secondary small fw-bold text-uppercase mb-1" style="font-size: 0.72rem;">Users With Balance</div>
+                            <h3 class="fw-bold mb-0 text-primary" id="overviewUsersWithBalance">0</h3>
+                        </div>
+                    </div>
+                    <!-- Users No Balance -->
+                    <div class="col-md">
+                        <div class="main-card p-3 text-center" style="border-radius: var(--radius); background: #ffffff;">
+                            <div class="text-secondary small fw-bold text-uppercase mb-1" style="font-size: 0.72rem;">Users No Balance</div>
+                            <h3 class="fw-bold mb-0 text-secondary" id="overviewUsersNoBalance">0</h3>
+                        </div>
+                    </div>
+                    <!-- Low Balance (<15 Rs) -->
+                    <div class="col-md">
+                        <div class="main-card p-3 text-center" style="border-radius: var(--radius); background: #ffffff;">
+                            <div class="text-secondary small fw-bold text-uppercase mb-1" style="font-size: 0.72rem;">Low Balance (<15 Rs)</div>
+                            <h3 class="fw-bold mb-0 text-warning" id="overviewUsersLowBalance">0</h3>
+                        </div>
+                    </div>
+                    <!-- Signups in Range -->
+                    <div class="col-md">
+                        <div class="main-card p-3 text-center" style="border-radius: var(--radius); background: #ffffff;">
+                            <div class="text-secondary small fw-bold text-uppercase mb-1" id="overviewSignupsLabel" style="font-size: 0.72rem;">Signups Today</div>
+                            <h3 class="fw-bold mb-0 text-success" id="overviewSignupsInRange">0</h3>
+                        </div>
+                    </div>
+                    <!-- Signups Yesterday -->
+                    <div class="col-md">
+                        <div class="main-card p-3 text-center" style="border-radius: var(--radius); background: #ffffff;">
+                            <div class="text-secondary small fw-bold text-uppercase mb-1" style="font-size: 0.72rem;">Signups Yesterday</div>
+                            <h3 class="fw-bold mb-0 text-info" id="overviewSignupsYesterday">0</h3>
                         </div>
                     </div>
                 </div>
@@ -357,7 +458,13 @@
                 <div class="row g-4 mt-2">
                     <div class="col-12">
                         <div class="main-card p-4">
-                            <h3 class="card-title mb-4"><i class="fa-solid fa-clock-rotate-left text-success me-2"></i>Deposit & Funding History Audit Log</h3>
+                            <div class="d-flex justify-content-between align-items-center mb-4 flex-wrap gap-2">
+                                <h3 class="card-title mb-0"><i class="fa-solid fa-clock-rotate-left text-success me-2"></i>Deposit & Funding History Audit Log</h3>
+                                <nav aria-label="Page navigation">
+                                    <ul class="pagination pagination-sm mb-0" id="depHistoryPaginationList" style="gap: 2px;">
+                                    </ul>
+                                </nav>
+                            </div>
                             
                             <div class="table-responsive table-responsive-cards">
                                 <table class="table table-hover align-middle">
@@ -379,6 +486,9 @@
                                         </tr>
                                     </tbody>
                                 </table>
+                            </div>
+                            <div class="d-flex justify-content-between align-items-center mt-3 flex-wrap gap-2">
+                                <div class="text-secondary small" id="depHistoryPageInfo">Showing 0 to 0 of 0 entries</div>
                             </div>
                         </div>
                     </div>
@@ -532,13 +642,67 @@
 
             <!-- 3.5 USER ACCOUNTS MANAGEMENT TAB -->
             <div class="tab-pane fade" id="pane-users" role="tabpanel">
+                <!-- User Accounts Analytical Widgets -->
+                <div class="row g-3 mb-4">
+                    <div class="col">
+                        <div class="main-card p-3 text-center filter-analytic-card" id="cardFilterWithBalance" onclick="setAnalyticFilter('withBalance', 'cardFilterWithBalance')" style="border-left: 4px solid var(--primary-color); cursor: pointer; transition: transform 0.2s, box-shadow 0.2s; border: 1px solid #e2e8f0;">
+                            <div class="text-secondary small fw-bold text-uppercase mb-1" style="font-size: 0.72rem; letter-spacing: 0.5px;">Users with Balance</div>
+                            <h3 class="fw-bold mb-0 text-primary" id="countWithBalance">0</h3>
+                        </div>
+                    </div>
+                    <div class="col">
+                        <div class="main-card p-3 text-center filter-analytic-card" id="cardFilterNoBalance" onclick="setAnalyticFilter('noBalance', 'cardFilterNoBalance')" style="border-left: 4px solid #6c757d; cursor: pointer; transition: transform 0.2s, box-shadow 0.2s; border: 1px solid #e2e8f0;">
+                            <div class="text-secondary small fw-bold text-uppercase mb-1" style="font-size: 0.72rem; letter-spacing: 0.5px;">Users no Balance</div>
+                            <h3 class="fw-bold mb-0 text-secondary" id="countNoBalance">0</h3>
+                        </div>
+                    </div>
+                    <div class="col">
+                        <div class="main-card p-3 text-center filter-analytic-card" id="cardFilterLowBalance" onclick="setAnalyticFilter('lowBalance', 'cardFilterLowBalance')" style="border-left: 4px solid #ffc107; cursor: pointer; transition: transform 0.2s, box-shadow 0.2s; border: 1px solid #e2e8f0;">
+                            <div class="text-secondary small fw-bold text-uppercase mb-1" style="font-size: 0.72rem; letter-spacing: 0.5px;">Low Balance (&lt;15 Rs)</div>
+                            <h3 class="fw-bold mb-0 text-warning" id="countLowBalance">0</h3>
+                        </div>
+                    </div>
+                    <div class="col">
+                        <div class="main-card p-3 text-center filter-analytic-card" id="cardFilterCreatedToday" onclick="setAnalyticFilter('today', 'cardFilterCreatedToday')" style="border-left: 4px solid #198754; cursor: pointer; transition: transform 0.2s, box-shadow 0.2s; border: 1px solid #e2e8f0;">
+                            <div class="text-secondary small fw-bold text-uppercase mb-1" style="font-size: 0.72rem; letter-spacing: 0.5px;">Signups Today</div>
+                            <h3 class="fw-bold mb-0 text-success" id="countCreatedToday">0</h3>
+                        </div>
+                    </div>
+                    <div class="col">
+                        <div class="main-card p-3 text-center filter-analytic-card" id="cardFilterCreatedYesterday" onclick="setAnalyticFilter('yesterday', 'cardFilterCreatedYesterday')" style="border-left: 4px solid #0dcaf0; cursor: pointer; transition: transform 0.2s, box-shadow 0.2s; border: 1px solid #e2e8f0;">
+                            <div class="text-secondary small fw-bold text-uppercase mb-1" style="font-size: 0.72rem; letter-spacing: 0.5px;">Signups Yesterday</div>
+                            <h3 class="fw-bold mb-0 text-info" id="countCreatedYesterday">0</h3>
+                        </div>
+                    </div>
+                </div>
+
                 <div class="main-card p-4">
-                    <div class="d-flex justify-content-between align-items-center flex-wrap gap-3 mb-4">
+                    <div class="d-flex flex-column flex-md-row align-items-md-center justify-content-between gap-3 mb-4">
                         <h3 class="card-title mb-0"><i class="fa-solid fa-users text-primary me-2"></i>User Accounts Management</h3>
-                        <div class="d-flex align-items-center gap-2">
-                            <div class="search-box" style="width: 280px; position: relative;">
-                                <input type="text" class="form-control" id="usersSearchInput" placeholder="Search by name or email...">
+                        
+                        <!-- Search, Sort & Date Filters Controls -->
+                        <div class="d-flex align-items-center gap-2 flex-wrap responsive-filter-toolbar" style="max-width: 800px;">
+                            <!-- Search -->
+                            <div class="input-group input-group-sm" style="width: 200px;">
+                                <input type="text" class="form-control" id="usersSearchInput" placeholder="Search name, email..." autocomplete="off" style="border-radius: 8px 0 0 8px;">
+                                <button class="btn btn-outline-secondary" id="clearUsersFilterBtn" title="Clear Filters" style="border-radius: 0 8px 8px 0;"><i class="fa-solid fa-xmark"></i></button>
                             </div>
+                            
+                            <!-- Sort Balance -->
+                            <select id="usersSortBalance" class="form-select form-select-sm" style="border-radius: 8px; width: 140px; font-weight: 500;">
+                                <option value="default" selected>Default Sorting</option>
+                                <option value="highToLow">Balance: High to Low</option>
+                                <option value="lowToHigh">Balance: Low to High</option>
+                            </select>
+
+                            <!-- Date Created Filters -->
+                            <div class="date-range-container">
+                                <input type="date" id="usersStartDate" class="form-control form-control-sm" style="border-radius: 8px; width: 110px;" title="Account Created Start Date">
+                                <span class="text-secondary small">to</span>
+                                <input type="date" id="usersEndDate" class="form-control form-control-sm" style="border-radius: 8px; width: 110px;" title="Account Created End Date">
+                            </div>
+                            
+                            <button id="applyUsersFilterBtn" class="btn btn-sm btn-primary px-3" style="border-radius: 8px; font-weight: 600;"><i class="fa-solid fa-magnifying-glass me-1"></i>Filter</button>
                         </div>
                     </div>
 
@@ -567,16 +731,27 @@
             <!-- 4. ORDERS LOG TAB -->
             <div class="tab-pane fade" id="pane-orders" role="tabpanel">
                 <div class="main-card p-4">
-                    <div class="d-flex flex-column flex-md-row align-items-md-center justify-content-between gap-3 mb-4">
-                        <h3 class="card-title mb-0"><i class="fa-solid fa-receipt text-primary me-2"></i>Wholesale Transactions & Orders Audit Log</h3>
+                     <div class="d-flex flex-column flex-md-row align-items-md-center justify-content-between gap-3 mb-4">
+                        <div class="d-flex align-items-center gap-3">
+                            <h3 class="card-title mb-0"><i class="fa-solid fa-receipt text-primary me-2"></i>Wholesale Transactions & Orders Audit Log</h3>
+                            <nav aria-label="Page navigation" class="ms-2">
+                                <ul class="pagination pagination-sm mb-0" id="orderHistoryPaginationList" style="gap: 2px;">
+                                </ul>
+                            </nav>
+                        </div>
                         
-                        <!-- Search & Filter Controls -->
-                        <div class="d-flex align-items-center gap-2" style="max-width: 400px; width: 100%;">
-                            <span class="text-secondary small fw-bold text-nowrap"><i class="fa-solid fa-filter me-1"></i>Filter User:</span>
-                            <div class="input-group">
-                                <input type="text" class="form-control" id="adminOrdersUserFilter" list="userEmailsList" placeholder="All Users (Type email...)" autocomplete="off">
-                                <button class="btn btn-outline-secondary" id="clearOrdersFilterBtn" title="Clear Filter"><i class="fa-solid fa-xmark"></i></button>
+                        <!-- Search, Dates & Filter Controls -->
+                        <div class="d-flex align-items-center gap-2 flex-wrap responsive-filter-toolbar" style="max-width: 700px;">
+                            <div class="input-group input-group-sm" style="width: 240px;">
+                                <input type="text" class="form-control" id="adminOrdersSearch" placeholder="Email, Order ID, Phone..." autocomplete="off" style="border-radius: 8px 0 0 8px;">
+                                <button class="btn btn-outline-secondary" id="clearOrdersFilterBtn" title="Clear Filter" style="border-radius: 0 8px 8px 0;"><i class="fa-solid fa-xmark"></i></button>
                             </div>
+                            <div class="date-range-container">
+                                <input type="date" id="adminOrdersStartDate" class="form-control form-control-sm" style="border-radius: 8px; width: 120px;">
+                                <span class="text-secondary small">to</span>
+                                <input type="date" id="adminOrdersEndDate" class="form-control form-control-sm" style="border-radius: 8px; width: 120px;">
+                            </div>
+                            <button id="applyOrdersFilterBtn" class="btn btn-sm btn-primary px-3" style="border-radius: 8px; font-weight: 600;"><i class="fa-solid fa-magnifying-glass me-1"></i>Search</button>
                         </div>
                     </div>
                     
@@ -590,6 +765,8 @@
                                     <th>Phone Number</th>
                                     <th>OTP Details</th>
                                     <th>Price (PKR)</th>
+                                    <th>Cost (PKR)</th>
+                                    <th>Profit (PKR)</th>
                                     <th>Verification Status</th>
                                     <th>Created At</th>
                                     <th>Code URL</th>
@@ -597,12 +774,15 @@
                             </thead>
                             <tbody id="adminOrdersTableBody">
                                 <tr>
-                                    <td colspan="9" class="text-center py-5 text-muted">
+                                    <td colspan="11" class="text-center py-5 text-muted">
                                         <i class="fa-solid fa-spinner fa-spin fa-2x mb-3 text-primary"></i><br>Querying order history log...
                                     </td>
                                 </tr>
                             </tbody>
                         </table>
+                    </div>
+                    <div class="d-flex justify-content-between align-items-center mt-3">
+                        <div class="text-secondary small" id="ordersHistoryPageInfo">Showing 0 to 0 of 0 entries</div>
                     </div>
                 </div>
             </div>
@@ -1007,6 +1187,160 @@
         </div>
     </div>
 
+    <!-- User Records Audit Modal -->
+    <div class="modal fade" id="userAuditModal" tabindex="-1" aria-labelledby="userAuditModalLabel" aria-hidden="true">
+        <div class="modal-dialog modal-xl modal-dialog-scrollable">
+            <div class="modal-content border-0 shadow" style="border-radius: 16px;">
+                <div class="modal-header border-0 bg-light py-3 px-4" style="border-top-left-radius: 16px; border-top-right-radius: 16px;">
+                    <h5 class="modal-title fw-bold" id="userAuditModalLabel">
+                        <i class="fa-solid fa-folder-open text-primary me-2"></i>User Audit Records & History
+                    </h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                <div class="modal-body p-4 text-start">
+                    <!-- User Info Details Card -->
+                    <div class="card bg-light border-0 mb-4" style="border-radius: 12px;">
+                        <div class="card-body p-4">
+                            <div class="row g-3">
+                                <div class="col-md-6 col-lg-3">
+                                    <div class="text-secondary small fw-bold">USER ACCOUNT EMAIL</div>
+                                    <div class="fs-6 fw-bold text-dark mt-1" id="auditUserEmail">---</div>
+                                    <div class="text-muted font-monospace mt-1" style="font-size: 0.75rem;">ID: <span id="auditUserIdVal">---</span></div>
+                                </div>
+                                <div class="col-md-6 col-lg-3">
+                                    <div class="text-secondary small fw-bold">FULL NAME & ROLE</div>
+                                    <div class="fs-6 fw-bold text-dark mt-1"><span id="auditUserName">---</span></div>
+                                    <div class="mt-1"><span class="badge bg-secondary" id="auditUserRole">user</span></div>
+                                </div>
+                                <div class="col-md-6 col-lg-3">
+                                    <div class="text-secondary small fw-bold">WALLET BALANCE</div>
+                                    <div class="fs-5 fw-extrabold text-success mt-1">Rs <span id="auditUserBalance">0.00</span></div>
+                                </div>
+                                <div class="col-md-6 col-lg-3">
+                                    <div class="text-secondary small fw-bold">ACCOUNT STATUS</div>
+                                    <div class="mt-1"><span class="badge bg-success" id="auditUserStatus">ACTIVE</span></div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Statistics Cards -->
+                    <div class="row g-3 mb-4">
+                        <div class="col-6 col-md-3">
+                            <div class="main-card p-3 text-center" style="border-left: 4px solid var(--primary-color);">
+                                <div class="text-secondary small fw-bold text-uppercase mb-1" style="font-size: 0.7rem;">Today's Orders</div>
+                                <h3 class="fw-bold mb-0 text-primary" id="auditStatOrdersToday">0</h3>
+                            </div>
+                        </div>
+                        <div class="col-6 col-md-3">
+                            <div class="main-card p-3 text-center" style="border-left: 4px solid #198754;">
+                                <div class="text-secondary small fw-bold text-uppercase mb-1" style="font-size: 0.7rem;">Today's Deposits</div>
+                                <h3 class="fw-bold mb-0 text-success" id="auditStatDepositsToday">Rs 0.00</h3>
+                            </div>
+                        </div>
+                        <div class="col-6 col-md-3">
+                            <div class="main-card p-3 text-center" style="border-left: 4px solid #6c757d;">
+                                <div class="text-secondary small fw-bold text-uppercase mb-1" style="font-size: 0.7rem;">Lifetime Orders</div>
+                                <h3 class="fw-bold mb-0 text-secondary" id="auditStatOrdersLifetime">0</h3>
+                            </div>
+                        </div>
+                        <div class="col-6 col-md-3">
+                            <div class="main-card p-3 text-center" style="border-left: 4px solid #ffc107;">
+                                <div class="text-secondary small fw-bold text-uppercase mb-1" style="font-size: 0.7rem;">Lifetime Deposits</div>
+                                <h3 class="fw-bold mb-0 text-warning" id="auditStatDepositsLifetime">Rs 0.00</h3>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Tabs sheets inside modal -->
+                    <ul class="nav nav-tabs nav-tabs-custom mb-3" id="auditTab" role="tablist">
+                        <li class="nav-item" role="presentation">
+                            <button class="nav-link active" id="audit-orders-tab" data-bs-toggle="tab" data-bs-target="#audit-orders-pane" type="button" role="tab" aria-controls="audit-orders-pane" aria-selected="true">
+                                <i class="fa-solid fa-receipt me-2"></i>Orders History
+                            </button>
+                        </li>
+                        <li class="nav-item" role="presentation">
+                            <button class="nav-link" id="audit-deposits-tab" data-bs-toggle="tab" data-bs-target="#audit-deposits-pane" type="button" role="tab" aria-controls="audit-deposits-pane" aria-selected="false">
+                                <i class="fa-solid fa-money-bill-transfer me-2"></i>Deposit History
+                            </button>
+                        </li>
+                    </ul>
+
+                    <div class="tab-content" id="auditTabContent">
+                        <!-- Orders Tab Sheet -->
+                        <div class="tab-pane fade show active" id="audit-orders-pane" role="tabpanel" aria-labelledby="audit-orders-tab" tabindex="0">
+                            <!-- Filters in Orders Tab -->
+                            <div class="row g-2 mb-3">
+                                <div class="col-md-8">
+                                    <div class="input-group">
+                                        <span class="input-group-text bg-white"><i class="fa-solid fa-magnifying-glass text-muted"></i></span>
+                                        <input type="text" class="form-control" id="auditOrdersSearchInput" placeholder="Search by Phone Number, Order ID or App...">
+                                    </div>
+                                </div>
+                                <div class="col-md-4">
+                                    <select class="form-select" id="auditOrdersStatusFilter">
+                                        <option value="ALL">All Order Statuses</option>
+                                        <option value="PENDING">PENDING</option>
+                                        <option value="COMPLETED">COMPLETED</option>
+                                        <option value="REFUNDED">REFUNDED / CANCELLED</option>
+                                    </select>
+                                </div>
+                            </div>
+
+                            <div class="table-responsive">
+                                <table class="table table-hover align-middle">
+                                    <thead>
+                                        <tr>
+                                            <th>Order Identifier</th>
+                                            <th>App / Group</th>
+                                            <th>Phone Number</th>
+                                            <th>OTP Details</th>
+                                            <th>Price</th>
+                                            <th>Status</th>
+                                            <th>Created At</th>
+                                            <th>Action</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody id="auditOrdersTableBody">
+                                        <tr>
+                                            <td colspan="8" class="text-center py-4 text-muted">No orders found.</td>
+                                        </tr>
+                                    </tbody>
+                                </table>
+                            </div>
+                        </div>
+
+                        <!-- Deposits Tab Sheet -->
+                        <div class="tab-pane fade" id="audit-deposits-pane" role="tabpanel" aria-labelledby="audit-deposits-tab" tabindex="0">
+                            <div class="table-responsive">
+                                <table class="table table-hover align-middle">
+                                    <thead>
+                                        <tr>
+                                            <th>Method</th>
+                                            <th>Amount (Deposit)</th>
+                                            <th>Amount (PKR)</th>
+                                            <th>TxID / Account</th>
+                                            <th>Status</th>
+                                            <th>Created At</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody id="auditDepositsTableBody">
+                                        <tr>
+                                            <td colspan="6" class="text-center py-4 text-muted">No deposits found.</td>
+                                        </tr>
+                                    </tbody>
+                                </table>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                <div class="modal-footer border-0 px-4 pb-4">
+                    <button type="button" class="btn btn-secondary px-4 py-2" data-bs-dismiss="modal" style="border-radius: 12px;">Close Audit Logs</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
     <!-- Sleek Toast Notification Container -->
     <div id="toastContainer" class="toast-container-custom"></div>
 
@@ -1014,6 +1348,31 @@
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
     <script src="assets/js/auth.js?v=1.8"></script>
     <script>
+        window.onerror = function (message, source, lineno, colno, error) {
+            fetch('/api/admin/log-error', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                    message: message,
+                    source: source,
+                    line: lineno,
+                    col: colno,
+                    stack: error ? error.stack : ''
+                })
+            }).catch(() => {});
+            return false;
+        };
+        window.addEventListener('unhandledrejection', function (event) {
+            fetch('/api/admin/log-error', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                    message: 'Unhandled Promise Rejection: ' + (event.reason ? event.reason.message || event.reason : ''),
+                    stack: event.reason && event.reason.stack ? event.reason.stack : ''
+                })
+            }).catch(() => {});
+        });
+
         document.addEventListener('DOMContentLoaded', () => {
             const sessionToken = localStorage.getItem('nova_session_token');
             if (!sessionToken) {
@@ -1033,6 +1392,77 @@
 
             let supabaseClient = null;
             let realtimeSubscribed = false;
+            let cachedDepositsHistory = [];
+            let currentDepHistoryPage = 1;
+            const depHistoryRowsPerPage = 20;
+
+            let cachedOrders = [];
+            let currentOrdersPage = 1;
+            const ordersRowsPerPage = 20;
+
+            let knownPendingDepositIds = new Set();
+            let isSoundInitialized = false;
+            let lastStatsHash = '';
+            let lastPendingDepositsHash = '';
+            let lastCompletedDepositsHash = '';
+            let audioCtx = null;
+
+            function getKarachiDateString(dateInput) {
+                try {
+                    return new Intl.DateTimeFormat('en-CA', {
+                        timeZone: 'Asia/Karachi',
+                        year: 'numeric',
+                        month: '2-digit',
+                        day: '2-digit'
+                    }).format(new Date(dateInput));
+                } catch (e) {
+                    return new Date(dateInput).toISOString().split('T')[0];
+                }
+            }
+
+            function playDepositNotificationSound() {
+                try {
+                    const ctx = audioCtx || new (window.AudioContext || window.webkitAudioContext)();
+                    if (!audioCtx) audioCtx = ctx;
+                    if (ctx.state === 'suspended') ctx.resume();
+
+                    const now = ctx.currentTime;
+                    const osc1 = ctx.createOscillator();
+                    const gain1 = ctx.createGain();
+                    osc1.type = 'sine';
+                    osc1.frequency.setValueAtTime(880, now);
+                    gain1.gain.setValueAtTime(0.15, now);
+                    gain1.gain.exponentialRampToValueAtTime(0.001, now + 0.3);
+                    osc1.connect(gain1);
+                    gain1.connect(ctx.destination);
+                    osc1.start(now);
+                    osc1.stop(now + 0.3);
+
+                    const osc2 = ctx.createOscillator();
+                    const gain2 = ctx.createGain();
+                    osc2.type = 'sine';
+                    osc2.frequency.setValueAtTime(698.46, now + 0.15);
+                    gain2.gain.setValueAtTime(0.15, now + 0.15);
+                    gain2.gain.exponentialRampToValueAtTime(0.001, now + 0.55);
+                    osc2.connect(gain2);
+                    gain2.connect(ctx.destination);
+                    osc2.start(now + 0.15);
+                    osc2.stop(now + 0.55);
+                } catch (e) {
+                    console.error('Failed to play sound:', e);
+                }
+            }
+
+            function initAudio() {
+                if (!audioCtx) {
+                    audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+                }
+                if (audioCtx && audioCtx.state === 'suspended') {
+                    audioCtx.resume();
+                }
+            }
+            document.addEventListener('click', initAudio);
+            document.addEventListener('keydown', initAudio);
 
             // Modal elements
             const pricingModalEl = document.getElementById('pricingModal');
@@ -1141,32 +1571,378 @@
                 calculatedPricePreview.textContent = `Calculated: ${symbol}${calculated.toFixed(3)}`;
             }
 
-            function loadAdminData() {
+            window.setDepHistoryPage = function(page) {
+                const totalPages = Math.ceil(cachedDepositsHistory.length / depHistoryRowsPerPage) || 1;
+                if (page < 1 || page > totalPages) return;
+                currentDepHistoryPage = page;
+                renderDepositsHistoryTable();
+            };
+
+            function renderDepositsHistoryTable() {
+                const tbody = document.getElementById('adminDepositsHistoryTableBody');
+                if (!tbody) return;
+
+                const startIdx = (currentDepHistoryPage - 1) * depHistoryRowsPerPage;
+                const endIdx = startIdx + depHistoryRowsPerPage;
+                const pageItems = cachedDepositsHistory.slice(startIdx, endIdx);
+
+                tbody.innerHTML = '';
+                if (cachedDepositsHistory.length === 0) {
+                    tbody.innerHTML = `<tr><td colspan="6" class="text-center py-4 text-muted">No completed deposit transactions found.</td></tr>`;
+                    document.getElementById('depHistoryPageInfo').textContent = 'Showing 0 to 0 of 0 entries';
+                    const paginationList = document.getElementById('depHistoryPaginationList');
+                    if (paginationList) paginationList.innerHTML = '';
+                    return;
+                }
+
+                pageItems.forEach(d => {
+                    const tr = document.createElement('tr');
+                    const statusClass = d.status === 'APPROVED' ? 'badge-approved' : 'badge-rejected';
+                    const depCurrency = d.currency || 'PKR';
+                    let amt = parseFloat(d.amount);
+                    if (depCurrency !== 'PKR') {
+                        const rate = exchangeRates[depCurrency]?.rate || 1.0;
+                        amt = amt * (278.50 / rate);
+                    }
+                    tr.innerHTML = `
+                        <td>
+                            <div class="fw-bold">${d.user_email}</div>
+                            <div class="small text-secondary font-monospace" style="font-size:0.75rem;">${d.user_id}</div>
+                        </td>
+                        <td><span class="badge bg-secondary font-monospace">${d.method}</span></td>
+                        <td><strong>Rs ${amt.toFixed(2)}</strong></td>
+                        <td>
+                            <div>Account Name: <code>${d.tx_id && d.tx_id.startsWith('NP-') ? 'Not Provided' : d.tx_id}</code></div>
+                            ${d.proof_image ? `
+                                <div class="mt-1">
+                                    <span class="text-success small fw-semibold"><i class="fa-solid fa-circle-check me-1"></i>Proof Attached</span>
+                                    <button class="btn btn-sm btn-outline-primary ms-2 px-2 py-0" onclick="viewAdminProofScreenshot('${d.proof_image}')" style="font-size: 0.75rem; border-radius: 6px;"><i class="fa-solid fa-eye me-1"></i>View Proof</button>
+                                </div>
+                            ` : `
+                                ${d.screenshot_url ? `
+                                    <div class="mt-1">
+                                        <span class="text-success small fw-semibold"><i class="fa-solid fa-circle-check me-1"></i>Proof URL</span>
+                                        <button class="btn btn-sm btn-outline-primary ms-2 px-2 py-0" onclick="viewAdminProofScreenshot('${d.screenshot_url}')" style="font-size: 0.75rem; border-radius: 6px;"><i class="fa-solid fa-eye me-1"></i>View Proof</button>
+                                    </div>
+                                ` : '<span class="text-muted small">No attachment</span>'}
+                            `}
+                            ${d.payment_note ? `<div class="mt-1 small text-dark bg-light p-1 rounded" style="font-size: 0.8rem; border-left: 3px solid #cbd5e1; white-space: pre-wrap;"><strong>Note:</strong> ${d.payment_note}</div>` : ''}
+                        </td>
+                        <td><span class="status-badge ${statusClass}">${d.status}</span></td>
+                        <td class="small text-secondary" style="font-size:0.75rem;">${new Date(d.created_at).toLocaleString()}</td>
+                    `;
+                    tbody.appendChild(tr);
+                });
+
+                // Update pagination controls
+                const totalItems = cachedDepositsHistory.length;
+                const totalPages = Math.ceil(totalItems / depHistoryRowsPerPage) || 1;
+                
+                document.getElementById('depHistoryPageInfo').textContent = `Showing ${startIdx + 1} to ${Math.min(endIdx, totalItems)} of ${totalItems} entries`;
+
+                const paginationList = document.getElementById('depHistoryPaginationList');
+                if (paginationList) {
+                    let html = `
+                        <li class="page-item ${currentDepHistoryPage === 1 ? 'disabled' : ''}">
+                            <button class="page-link" onclick="setDepHistoryPage(${currentDepHistoryPage - 1})" aria-label="Previous" style="border-radius: 8px; width: 32px; height: 32px; display: flex; align-items: center; justify-content: center;">
+                                <i class="fa-solid fa-chevron-left" style="font-size: 0.75rem;"></i>
+                            </button>
+                        </li>
+                    `;
+                    for (let p = 1; p <= totalPages; p++) {
+                        html += `
+                            <li class="page-item ${currentDepHistoryPage === p ? 'active' : ''}">
+                                <button class="page-link" onclick="setDepHistoryPage(${p})" style="border-radius: 8px; min-width: 32px; height: 32px; text-align: center; display: flex; align-items: center; justify-content: center;">${p}</button>
+                            </li>
+                        `;
+                    }
+                    html += `
+                        <li class="page-item ${currentDepHistoryPage >= totalPages ? 'disabled' : ''}">
+                            <button class="page-link" onclick="setDepHistoryPage(${currentDepHistoryPage + 1})" aria-label="Next" style="border-radius: 8px; width: 32px; height: 32px; display: flex; align-items: center; justify-content: center;">
+                                <i class="fa-solid fa-chevron-right" style="font-size: 0.75rem;"></i>
+                            </button>
+                        </li>
+                    `;
+                    paginationList.innerHTML = html;
+                }
+            }
+
+            function loadAdminLiveUpdates() {
                 const headers = { 'Authorization': 'Bearer ' + sessionToken };
 
+                const range = document.getElementById('overviewFilter')?.value || 'today';
+                const start = document.getElementById('overviewStartDate')?.value || '';
+                const end = document.getElementById('overviewEndDate')?.value || '';
+
+                let statsUrl = `/api/admin/stats?range=${range}`;
+                if (range === 'custom') {
+                    statsUrl += `&start_date=${encodeURIComponent(start)}&end_date=${encodeURIComponent(end)}`;
+                }
+
                 // 0. Fetch overview statistics reports
-                fetch('/api/admin/stats', { headers })
+                fetch(statsUrl, { headers })
                     .then(res => res.json())
                     .then(data => {
                         if (data.success && data.stats) {
-                            const s = data.stats;
-                            document.getElementById('statOrdersToday').textContent = s.orders_today;
-                            document.getElementById('statRevenueToday').textContent = `Rs ${parseFloat(s.revenue_today).toFixed(2)}`;
-                            document.getElementById('statCostToday').textContent = `Rs ${parseFloat(s.cost_today).toFixed(2)}`;
-                            document.getElementById('statProfitToday').textContent = `Rs ${parseFloat(s.profit_today).toFixed(2)}`;
+                            const statsStr = JSON.stringify(data.stats) + '_' + range;
+                            if (statsStr !== lastStatsHash) {
+                                lastStatsHash = statsStr;
+                                const s = data.stats;
+                                document.getElementById('statOrdersToday').textContent = s.orders_today;
+                                document.getElementById('statRevenueToday').textContent = `Rs ${parseFloat(s.revenue_today).toFixed(2)}`;
+                                document.getElementById('statCostToday').textContent = `Rs ${parseFloat(s.cost_today).toFixed(2)}`;
+                                document.getElementById('statProfitToday').textContent = `Rs ${parseFloat(s.profit_today).toFixed(2)}`;
 
-                            document.getElementById('statOrdersLifetime').textContent = s.orders_lifetime;
-                            document.getElementById('statRevenueLifetime').textContent = `Rs ${parseFloat(s.revenue_lifetime).toFixed(2)}`;
-                            document.getElementById('statCostLifetime').textContent = `Rs ${parseFloat(s.cost_lifetime).toFixed(2)}`;
-                            document.getElementById('statProfitLifetime').textContent = `Rs ${parseFloat(s.profit_lifetime).toFixed(2)}`;
+                                document.getElementById('statOrdersLifetime').textContent = s.orders_lifetime;
+                                document.getElementById('statRevenueLifetime').textContent = `Rs ${parseFloat(s.revenue_lifetime).toFixed(2)}`;
+                                document.getElementById('statCostLifetime').textContent = `Rs ${parseFloat(s.cost_lifetime).toFixed(2)}`;
+                                document.getElementById('statProfitLifetime').textContent = `Rs ${parseFloat(s.profit_lifetime).toFixed(2)}`;
 
-                            document.getElementById('statTotalLiability').textContent = `Rs ${parseFloat(s.total_liability).toFixed(2)}`;
+                                document.getElementById('statTotalLiability').textContent = `Rs ${parseFloat(s.total_liability).toFixed(2)}`;
 
-                            if (data.daily_stats) {
-                                renderOverviewCharts(data.daily_stats);
+                                // Populate User Accounts Insights Cards
+                                document.getElementById('overviewUsersWithBalance').textContent = s.users_with_balance || '0';
+                                document.getElementById('overviewUsersNoBalance').textContent = s.users_no_balance || '0';
+                                document.getElementById('overviewUsersLowBalance').textContent = s.users_low_balance || '0';
+                                document.getElementById('overviewSignupsInRange').textContent = s.signups_in_range || '0';
+                                document.getElementById('overviewSignupsYesterday').textContent = s.signups_yesterday || '0';
+
+                                // Dynamically update the header label of the stats cards
+                                let rangeLabel = 'Today';
+                                if (range === 'yesterday') rangeLabel = 'Yesterday';
+                                else if (range === '7days') rangeLabel = 'Last 7 Days';
+                                else if (range === '30days') rangeLabel = 'Last 30 Days';
+                                else if (range === 'custom') rangeLabel = 'Filtered';
+
+                                const signupsLabelEl = document.getElementById('overviewSignupsLabel');
+                                if (signupsLabelEl) {
+                                    signupsLabelEl.textContent = `Signups (${rangeLabel})`;
+                                }
+
+                                const cols = document.querySelectorAll('#pane-overview .row.g-4.mb-4:first-of-type .col-md-3');
+                                if (cols.length >= 4) {
+                                    cols[0].querySelector('.text-uppercase').textContent = `Orders (${rangeLabel})`;
+                                    cols[1].querySelector('.text-uppercase').textContent = `Revenue (${rangeLabel})`;
+                                    cols[2].querySelector('.text-uppercase').textContent = `Cost (${rangeLabel})`;
+                                    cols[3].querySelector('.text-uppercase').textContent = `Profit (${rangeLabel})`;
+                                }
+
+                                if (data.daily_stats) {
+                                    renderOverviewCharts(data.daily_stats);
+                                }
                             }
                         }
                     });
+
+                // 1. Fetch pending deposits
+                fetch('/api/admin/deposits', { headers })
+                    .then(res => res.json())
+                    .then(data => {
+                        if (data.success) {
+                            let hasNewPending = false;
+                            if (data.deposits && data.deposits.length > 0) {
+                                data.deposits.forEach(d => {
+                                    if (d.status === 'PENDING' && !knownPendingDepositIds.has(d.id)) {
+                                        knownPendingDepositIds.add(d.id);
+                                        hasNewPending = true;
+                                    }
+                                });
+                            }
+                            
+                            if (hasNewPending) {
+                                if (isSoundInitialized) {
+                                    playDepositNotificationSound();
+                                }
+                            }
+                            isSoundInitialized = true;
+
+                            const depositsStr = JSON.stringify(data.deposits);
+                            if (depositsStr !== lastPendingDepositsHash) {
+                                lastPendingDepositsHash = depositsStr;
+                                depositsTable.innerHTML = '';
+                                if (data.deposits.length === 0) {
+                                    depositsTable.innerHTML = `<tr><td colspan="5" class="text-center py-4 text-muted">No pending deposit requests.</td></tr>`;
+                                    return;
+                                }
+                                data.deposits.forEach(d => {
+                                    const tr = document.createElement('tr');
+                                    const depCurrency = d.currency || 'PKR';
+                                    let amt = parseFloat(d.amount);
+                                    if (depCurrency !== 'PKR') {
+                                        const rate = exchangeRates[depCurrency]?.rate || 1.0;
+                                        amt = amt * (278.50 / rate);
+                                    }
+                                    tr.innerHTML = `
+                                        <td>
+                                            <div class="fw-bold">${d.user_email}</div>
+                                            <div class="small text-secondary font-monospace" style="font-size:0.75rem;">${d.user_id}</div>
+                                        </td>
+                                        <td><span class="badge bg-secondary font-monospace">${d.method}</span></td>
+                                        <td><strong>Rs ${amt.toFixed(2)}</strong></td>
+                                        <td>
+                                            <div>Account Name: <code>${d.tx_id && d.tx_id.startsWith('NP-') ? 'Not Provided' : d.tx_id}</code></div>
+                                            ${d.proof_image ? `
+                                                <div class="mt-1">
+                                                    <span class="text-success small fw-semibold"><i class="fa-solid fa-circle-check me-1"></i>Proof Attached</span>
+                                                    <button class="btn btn-sm btn-outline-primary ms-2 px-2 py-0" onclick="viewAdminProofScreenshot('${d.proof_image}')" style="font-size: 0.75rem; border-radius: 6px;"><i class="fa-solid fa-eye me-1"></i>View Proof</button>
+                                                </div>
+                                            ` : `
+                                                ${d.screenshot_url ? `
+                                                    <div class="mt-1">
+                                                        <span class="text-success small fw-semibold"><i class="fa-solid fa-circle-check me-1"></i>Proof URL</span>
+                                                        <button class="btn btn-sm btn-outline-primary ms-2 px-2 py-0" onclick="viewAdminProofScreenshot('${d.screenshot_url}')" style="font-size: 0.75rem; border-radius: 6px;"><i class="fa-solid fa-eye me-1"></i>View Proof</button>
+                                                    </div>
+                                                ` : '<span class="text-muted small">No attachment</span>'}
+                                            `}
+                                            ${d.payment_note ? `<div class="mt-1 small text-dark bg-light p-1 rounded" style="font-size: 0.8rem; border-left: 3px solid #cbd5e1; white-space: pre-wrap;"><strong>Note:</strong> ${d.payment_note}</div>` : ''}
+                                        </td>
+                                        <td class="text-end">
+                                            <button class="btn btn-action btn-success me-1 px-3" onclick="processDeposit('${d.id}', 'APPROVED')">Approve</button>
+                                            <button class="btn btn-action btn-danger px-3" onclick="processDeposit('${d.id}', 'REJECTED')">Reject</button>
+                                        </td>
+                                    `;
+                                    depositsTable.appendChild(tr);
+                                });
+                            }
+                        }
+                    });
+
+                // 1.5 Fetch completed deposits history log
+                fetch('/api/admin/deposits/history', { headers })
+                    .then(res => res.json())
+                    .then(data => {
+                        if (data.success) {
+                            const historyStr = JSON.stringify(data.deposits);
+                            if (historyStr !== lastCompletedDepositsHash) {
+                                lastCompletedDepositsHash = historyStr;
+                                cachedDepositsHistory = data.deposits || [];
+                                renderDepositsHistoryTable();
+                            }
+                        }
+                    });
+            }
+
+            window.setOrderHistoryPage = function(page) {
+                const totalPages = Math.ceil(cachedOrders.length / ordersRowsPerPage) || 1;
+                if (page < 1 || page > totalPages) return;
+                currentOrdersPage = page;
+                renderOrdersTable();
+            };
+
+            function renderOrdersTable() {
+                if (!ordersTable) return;
+                
+                const startIdx = (currentOrdersPage - 1) * ordersRowsPerPage;
+                const endIdx = startIdx + ordersRowsPerPage;
+                const pageItems = cachedOrders.slice(startIdx, endIdx);
+
+                ordersTable.innerHTML = '';
+                if (cachedOrders.length === 0) {
+                    ordersTable.innerHTML = `<tr><td colspan="11" class="text-center py-4 text-muted">No orders found matching search criteria.</td></tr>`;
+                    document.getElementById('ordersHistoryPageInfo').textContent = 'Showing 0 to 0 of 0 entries';
+                    const paginationList = document.getElementById('orderHistoryPaginationList');
+                    if (paginationList) paginationList.innerHTML = '';
+                    return;
+                }
+
+                pageItems.forEach(o => {
+                    const tr = document.createElement('tr');
+                    const statusClass = o.status === 'COMPLETED' ? 'badge-approved' : (o.status === 'PENDING' ? 'badge-pending' : 'badge-rejected');
+                    tr.innerHTML = `
+                        <td>
+                            <div class="fw-bold small">${o.user_email}</div>
+                        </td>
+                        <td><code class="font-monospace" style="font-size:0.8rem;">${o.order_id}</code></td>
+                        <td>
+                            <div class="fw-bold small">${o.service}</div>
+                            <div class="text-muted small" style="font-size:0.75rem;">${o.country || ''}</div>
+                        </td>
+                        <td><strong>${o.number}</strong></td>
+                        <td><code class="fs-6 text-primary">${o.otp || '------'}</code></td>
+                        <td>${formatOrderPrice(o.price)}</td>
+                        <td>${formatOrderPrice(o.cost_price)}</td>
+                        <td>${formatOrderPrice(o.profit)}</td>
+                        <td>
+                            <span class="status-badge ${statusClass}">${o.status}</span>
+                            ${(o.status === 'PENDING' || o.status === 'EXPIRED') ? `
+                                <button class="btn btn-sm btn-danger ms-2 px-2 py-0" onclick="confirmRefundOrder('${o.order_id}')" style="font-size: 0.75rem; border-radius: 6px;"><i class="fa-solid fa-undo me-1"></i>Refund</button>
+                            ` : ''}
+                        </td>
+                        <td class="small text-secondary" style="font-size:0.75rem;">${new Date(o.created_at).toLocaleString()}</td>
+                        <td>
+                            ${o.sms_url 
+                                ? `<button class="btn btn-sm btn-outline-primary" onclick="window.open('${o.sms_url}', '_blank')" style="font-size: 0.75rem; border-radius: 6px;">🔗 Code URL</button>`
+                                : `<span class="text-muted small" style="font-size: 0.75rem;">No URL Available</span>`}
+                        </td>
+                    `;
+                    ordersTable.appendChild(tr);
+                });
+
+                // Update pagination controls
+                const totalItems = cachedOrders.length;
+                const totalPages = Math.ceil(totalItems / ordersRowsPerPage) || 1;
+                
+                document.getElementById('ordersHistoryPageInfo').textContent = `Showing ${startIdx + 1} to ${Math.min(endIdx, totalItems)} of ${totalItems} entries`;
+
+                const paginationList = document.getElementById('orderHistoryPaginationList');
+                if (paginationList) {
+                    let html = `
+                        <li class="page-item ${currentOrdersPage === 1 ? 'disabled' : ''}">
+                            <button class="page-link" onclick="setOrderHistoryPage(${currentOrdersPage - 1})" aria-label="Previous" style="border-radius: 8px; width: 32px; height: 32px; display: flex; align-items: center; justify-content: center;">
+                                <i class="fa-solid fa-chevron-left" style="font-size: 0.75rem;"></i>
+                            </button>
+                        </li>
+                    `;
+                    for (let p = 1; p <= totalPages; p++) {
+                        html += `
+                            <li class="page-item ${currentOrdersPage === p ? 'active' : ''}">
+                                <button class="page-link" onclick="setOrderHistoryPage(${p})" style="border-radius: 8px; min-width: 32px; height: 32px; text-align: center; display: flex; align-items: center; justify-content: center;">${p}</button>
+                            </li>
+                        `;
+                    }
+                    html += `
+                        <li class="page-item ${currentOrdersPage >= totalPages ? 'disabled' : ''}">
+                            <button class="page-link" onclick="setOrderHistoryPage(${currentOrdersPage + 1})" aria-label="Next" style="border-radius: 8px; width: 32px; height: 32px; display: flex; align-items: center; justify-content: center;">
+                                <i class="fa-solid fa-chevron-right" style="font-size: 0.75rem;"></i>
+                            </button>
+                        </li>
+                    `;
+                    paginationList.innerHTML = html;
+                }
+            }
+
+            function loadAdminOrders() {
+                const headers = { 'Authorization': 'Bearer ' + sessionToken };
+                const search = document.getElementById('adminOrdersSearch')?.value.trim() || '';
+                const startDate = document.getElementById('adminOrdersStartDate')?.value || '';
+                const endDate = document.getElementById('adminOrdersEndDate')?.value || '';
+
+                let ordersUrl = `/api/admin/orders?search=${encodeURIComponent(search)}`;
+                if (startDate) ordersUrl += `&start_date=${encodeURIComponent(startDate)}`;
+                if (endDate) ordersUrl += `&end_date=${encodeURIComponent(endDate)}`;
+
+                ordersTable.innerHTML = `<tr><td colspan="9" class="text-center py-5 text-muted">
+                    <i class="fa-solid fa-spinner fa-spin fa-2x mb-3 text-primary"></i><br>Querying order history log...
+                </td></tr>`;
+
+                fetch(ordersUrl, { headers })
+                    .then(res => res.json())
+                    .then(data => {
+                        if (data.success) {
+                            cachedOrders = data.orders || [];
+                            currentOrdersPage = 1;
+                            renderOrdersTable();
+                        } else {
+                            showAlert(data.message || 'Failed to load orders.');
+                        }
+                    });
+            }
+
+            function loadAdminData() {
+                const headers = { 'Authorization': 'Bearer ' + sessionToken };
+
+                // Call live updates immediately
+                loadAdminLiveUpdates();
 
                 // Fetch User list
                 loadAdminUsers();
@@ -1180,156 +1956,8 @@
                 // WhatsApp Support settings fetch
                 if (typeof loadAdminWhatsappSupportSettings === 'function') loadAdminWhatsappSupportSettings();
 
-                // 1. Fetch pending deposits
-                fetch('/api/admin/deposits', { headers })
-                    .then(res => res.json())
-                    .then(data => {
-                        if (data.success) {
-                            depositsTable.innerHTML = '';
-                            if (data.deposits.length === 0) {
-                                depositsTable.innerHTML = `<tr><td colspan="5" class="text-center py-4 text-muted">No pending deposit requests.</td></tr>`;
-                                return;
-                            }
-                            data.deposits.forEach(d => {
-                                const tr = document.createElement('tr');
-                                const depCurrency = d.currency || 'PKR';
-                                let amt = parseFloat(d.amount);
-                                if (depCurrency !== 'PKR') {
-                                    const rate = exchangeRates[depCurrency]?.rate || 1.0;
-                                    amt = amt * (278.50 / rate);
-                                }
-                                tr.innerHTML = `
-                                    <td>
-                                        <div class="fw-bold">${d.user_email}</div>
-                                        <div class="small text-secondary font-monospace" style="font-size:0.75rem;">${d.user_id}</div>
-                                    </td>
-                                    <td><span class="badge bg-secondary font-monospace">${d.method}</span></td>
-                                    <td><strong>Rs ${amt.toFixed(2)}</strong></td>
-                                    <td>
-                                        <div>Account Name: <code>${d.tx_id && d.tx_id.startsWith('NP-') ? 'Not Provided' : d.tx_id}</code></div>
-                                        ${d.proof_image ? `
-                                            <div class="mt-1">
-                                                <span class="text-success small fw-semibold"><i class="fa-solid fa-circle-check me-1"></i>Proof Attached</span>
-                                                <button class="btn btn-sm btn-outline-primary ms-2 px-2 py-0" onclick="viewAdminProofScreenshot('${d.proof_image}')" style="font-size: 0.75rem; border-radius: 6px;"><i class="fa-solid fa-eye me-1"></i>View Proof</button>
-                                            </div>
-                                        ` : `
-                                            ${d.screenshot_url ? `
-                                                <div class="mt-1">
-                                                    <span class="text-success small fw-semibold"><i class="fa-solid fa-circle-check me-1"></i>Proof URL</span>
-                                                    <button class="btn btn-sm btn-outline-primary ms-2 px-2 py-0" onclick="viewAdminProofScreenshot('${d.screenshot_url}')" style="font-size: 0.75rem; border-radius: 6px;"><i class="fa-solid fa-eye me-1"></i>View Proof</button>
-                                                </div>
-                                            ` : '<span class="text-muted small">No attachment</span>'}
-                                        `}
-                                        ${d.payment_note ? `<div class="mt-1 small text-dark bg-light p-1 rounded" style="font-size: 0.8rem; border-left: 3px solid #cbd5e1; white-space: pre-wrap;"><strong>Note:</strong> ${d.payment_note}</div>` : ''}
-                                    </td>
-                                    <td class="text-end">
-                                        <button class="btn btn-action btn-success me-1 px-3" onclick="processDeposit('${d.id}', 'APPROVED')">Approve</button>
-                                        <button class="btn btn-action btn-danger px-3" onclick="processDeposit('${d.id}', 'REJECTED')">Reject</button>
-                                    </td>
-                                `;
-                                depositsTable.appendChild(tr);
-                            });
-                        } else {
-                            showAlert(data.message || 'Failed to load deposits.');
-                        }
-                    });
-
-                // 1.5 Fetch completed deposits history log
-                const depositsHistoryTable = document.getElementById('adminDepositsHistoryTableBody');
-                fetch('/api/admin/deposits/history', { headers })
-                    .then(res => res.json())
-                    .then(data => {
-                        if (data.success && depositsHistoryTable) {
-                            depositsHistoryTable.innerHTML = '';
-                            if (data.deposits.length === 0) {
-                                depositsHistoryTable.innerHTML = `<tr><td colspan="6" class="text-center py-4 text-muted">No completed deposit transactions found.</td></tr>`;
-                                return;
-                            }
-                            data.deposits.forEach(d => {
-                                const tr = document.createElement('tr');
-                                const statusClass = d.status === 'APPROVED' ? 'badge-approved' : 'badge-rejected';
-                                const depCurrency = d.currency || 'PKR';
-                                let amt = parseFloat(d.amount);
-                                if (depCurrency !== 'PKR') {
-                                    const rate = exchangeRates[depCurrency]?.rate || 1.0;
-                                    amt = amt * (278.50 / rate);
-                                }
-                                tr.innerHTML = `
-                                    <td>
-                                        <div class="fw-bold">${d.user_email}</div>
-                                        <div class="small text-secondary font-monospace" style="font-size:0.75rem;">${d.user_id}</div>
-                                    </td>
-                                    <td><span class="badge bg-secondary font-monospace">${d.method}</span></td>
-                                    <td><strong>Rs ${amt.toFixed(2)}</strong></td>
-                                    <td>
-                                        <div>Account Name: <code>${d.tx_id && d.tx_id.startsWith('NP-') ? 'Not Provided' : d.tx_id}</code></div>
-                                        ${d.proof_image ? `
-                                            <div class="mt-1">
-                                                <span class="text-success small fw-semibold"><i class="fa-solid fa-circle-check me-1"></i>Proof Attached</span>
-                                                <button class="btn btn-sm btn-outline-primary ms-2 px-2 py-0" onclick="viewAdminProofScreenshot('${d.proof_image}')" style="font-size: 0.75rem; border-radius: 6px;"><i class="fa-solid fa-eye me-1"></i>View Proof</button>
-                                            </div>
-                                        ` : `
-                                            ${d.screenshot_url ? `
-                                                <div class="mt-1">
-                                                    <span class="text-success small fw-semibold"><i class="fa-solid fa-circle-check me-1"></i>Proof URL</span>
-                                                    <button class="btn btn-sm btn-outline-primary ms-2 px-2 py-0" onclick="viewAdminProofScreenshot('${d.screenshot_url}')" style="font-size: 0.75rem; border-radius: 6px;"><i class="fa-solid fa-eye me-1"></i>View Proof</button>
-                                                </div>
-                                            ` : '<span class="text-muted small">No attachment</span>'}
-                                        `}
-                                        ${d.payment_note ? `<div class="mt-1 small text-dark bg-light p-1 rounded" style="font-size: 0.8rem; border-left: 3px solid #cbd5e1; white-space: pre-wrap;"><strong>Note:</strong> ${d.payment_note}</div>` : ''}
-                                    </td>
-                                    <td><span class="status-badge ${statusClass}">${d.status}</span></td>
-                                    <td class="small text-secondary" style="font-size:0.75rem;">${new Date(d.created_at).toLocaleString()}</td>
-                                `;
-                                depositsHistoryTable.appendChild(tr);
-                            });
-                        }
-                    });
-
-                // 2. Fetch all orders (with user filter support)
-                const userFilterVal = document.getElementById('adminOrdersUserFilter')?.value.trim() || '';
-                const ordersUrl = userFilterVal ? `/api/admin/orders?user_email=${encodeURIComponent(userFilterVal)}` : '/api/admin/orders';
-                fetch(ordersUrl, { headers })
-                    .then(res => res.json())
-                    .then(data => {
-                        if (data.success) {
-                            ordersTable.innerHTML = '';
-                            if (data.orders.length === 0) {
-                                ordersTable.innerHTML = `<tr><td colspan="9" class="text-center py-4 text-muted">No orders found.</td></tr>`;
-                                return;
-                            }
-                            data.orders.forEach(o => {
-                                const tr = document.createElement('tr');
-                                const statusClass = o.status === 'COMPLETED' ? 'badge-approved' : (o.status === 'PENDING' ? 'badge-pending' : 'badge-rejected');
-                                tr.innerHTML = `
-                                    <td>
-                                        <div class="fw-bold small">${o.user_email}</div>
-                                    </td>
-                                    <td><code class="font-monospace" style="font-size:0.8rem;">${o.order_id}</code></td>
-                                    <td>
-                                        <div class="fw-bold small">${o.service}</div>
-                                        <div class="text-muted small" style="font-size:0.75rem;">${o.country || ''}</div>
-                                    </td>
-                                    <td><strong>${o.number}</strong></td>
-                                    <td><code class="fs-6 text-primary">${o.otp || '------'}</code></td>
-                                    <td>${formatOrderPrice(o.price)}</td>
-                                    <td>
-                                        <span class="status-badge ${statusClass}">${o.status}</span>
-                                        ${(o.status === 'PENDING' || o.status === 'EXPIRED') ? `
-                                            <button class="btn btn-sm btn-danger ms-2 px-2 py-0" onclick="confirmRefundOrder('${o.order_id}')" style="font-size: 0.75rem; border-radius: 6px;"><i class="fa-solid fa-undo me-1"></i>Refund</button>
-                                        ` : ''}
-                                    </td>
-                                    <td class="small text-secondary" style="font-size:0.75rem;">${new Date(o.created_at).toLocaleString()}</td>
-                                    <td>
-                                        ${o.sms_url 
-                                            ? `<button class="btn btn-sm btn-outline-primary" onclick="window.open('${o.sms_url}', '_blank')" style="font-size: 0.75rem; border-radius: 6px;">🔗 Code URL</button>`
-                                            : `<span class="text-muted small" style="font-size: 0.75rem;">No URL Available</span>`}
-                                    </td>
-                                `;
-                                ordersTable.appendChild(tr);
-                            });
-                        }
-                    });
+                // 2. Fetch all orders (paginated with search parameters)
+                loadAdminOrders();
 
                 // 3. Fetch admin profiles
                 fetch('/api/admin/profiles', { headers })
@@ -1542,6 +2170,72 @@
                 });
             }
 
+            let selectedAnalyticFilter = 'all';
+
+            window.setAnalyticFilter = function(filterType, elementId) {
+                // Remove active classes/styles from all cards
+                document.querySelectorAll('.filter-analytic-card').forEach(el => {
+                    el.style.transform = 'scale(1)';
+                    el.style.boxShadow = 'none';
+                    el.style.borderColor = '#e2e8f0';
+                });
+
+                if (selectedAnalyticFilter === filterType) {
+                    selectedAnalyticFilter = 'all';
+                } else {
+                    selectedAnalyticFilter = filterType;
+                    const activeCard = document.getElementById(elementId);
+                    if (activeCard) {
+                        activeCard.style.transform = 'scale(1.05)';
+                        activeCard.style.boxShadow = '0 6px 12px rgba(0, 0, 0, 0.05)';
+                        activeCard.style.borderColor = 'var(--primary-color)';
+                    }
+                }
+                renderUsersTable();
+            };
+
+            function updateUsersAnalyticalStats() {
+                let withBalance = 0;
+                let noBalance = 0;
+                let lowBalance = 0;
+                let createdToday = 0;
+                let createdYesterday = 0;
+
+                const nowInKarachi = new Date(new Date().toLocaleString('en-US', { timeZone: 'Asia/Karachi' }));
+                const todayStr = getKarachiDateString(nowInKarachi);
+                
+                const yesterday = new Date(nowInKarachi);
+                yesterday.setDate(yesterday.getDate() - 1);
+                const yesterdayStr = getKarachiDateString(yesterday);
+
+                allUsersData.forEach(u => {
+                    const bal = parseFloat(u.balance || 0);
+                    if (bal > 0) {
+                        withBalance++;
+                        if (bal < 15) {
+                            lowBalance++;
+                        }
+                    } else {
+                        noBalance++;
+                    }
+
+                    if (u.created_at) {
+                        const createDateStr = getKarachiDateString(u.created_at);
+                        if (createDateStr === todayStr) {
+                            createdToday++;
+                        } else if (createDateStr === yesterdayStr) {
+                            createdYesterday++;
+                        }
+                    }
+                });
+
+                document.getElementById('countWithBalance').textContent = withBalance;
+                document.getElementById('countNoBalance').textContent = noBalance;
+                document.getElementById('countLowBalance').textContent = lowBalance;
+                document.getElementById('countCreatedToday').textContent = createdToday;
+                document.getElementById('countCreatedYesterday').textContent = createdYesterday;
+            }
+
             function loadAdminUsers() {
                 const headers = { 'Authorization': 'Bearer ' + sessionToken };
                 fetch('/api/admin/users', { headers })
@@ -1549,6 +2243,7 @@
                     .then(data => {
                         if (data.success && data.users) {
                             allUsersData = data.users;
+                            updateUsersAnalyticalStats();
                             renderUsersTable();
                         }
                     });
@@ -1557,16 +2252,62 @@
             function renderUsersTable() {
                 if (!usersTable) return;
                 const search = (usersSearchInput ? usersSearchInput.value : '').toLowerCase().trim();
+                const startDate = document.getElementById('usersStartDate')?.value || '';
+                const endDate = document.getElementById('usersEndDate')?.value || '';
+                const sortBalance = document.getElementById('usersSortBalance')?.value || 'default';
+
+                const nowInKarachi = new Date(new Date().toLocaleString('en-US', { timeZone: 'Asia/Karachi' }));
+                const todayStr = getKarachiDateString(nowInKarachi);
                 
-                const filtered = allUsersData.filter(u => {
-                    return (u.name || '').toLowerCase().includes(search) || 
-                           (u.email || '').toLowerCase().includes(search) ||
-                           (u.id || '').toLowerCase().includes(search);
+                const yesterday = new Date(nowInKarachi);
+                yesterday.setDate(yesterday.getDate() - 1);
+                const yesterdayStr = getKarachiDateString(yesterday);
+
+                // 1. Filter
+                let filtered = allUsersData.filter(u => {
+                    // Search
+                    const searchMatch = (u.name || '').toLowerCase().includes(search) || 
+                                        (u.email || '').toLowerCase().includes(search) ||
+                                        (u.id || '').toLowerCase().includes(search);
+                    if (!searchMatch) return false;
+
+                    // Date Filters
+                    if (u.created_at) {
+                        const createDateStr = getKarachiDateString(u.created_at);
+                        if (startDate && createDateStr < startDate) return false;
+                        if (endDate && createDateStr > endDate) return false;
+                    } else if (startDate || endDate) {
+                        return false;
+                    }
+
+                    // Analytics Filter
+                    const bal = parseFloat(u.balance || 0);
+                    if (selectedAnalyticFilter === 'withBalance' && bal <= 0) return false;
+                    if (selectedAnalyticFilter === 'noBalance' && bal !== 0) return false;
+                    if (selectedAnalyticFilter === 'lowBalance' && (bal <= 0 || bal >= 15)) return false;
+                    
+                    if (u.created_at) {
+                        const createDateStr = getKarachiDateString(u.created_at);
+                        if (selectedAnalyticFilter === 'today' && createDateStr !== todayStr) return false;
+                        if (selectedAnalyticFilter === 'yesterday' && createDateStr !== yesterdayStr) return false;
+                    } else if (selectedAnalyticFilter === 'today' || selectedAnalyticFilter === 'yesterday') {
+                        return false;
+                    }
+
+                    return true;
                 });
 
+                // 2. Sort
+                if (sortBalance === 'highToLow') {
+                    filtered.sort((a, b) => parseFloat(b.balance || 0) - parseFloat(a.balance || 0));
+                } else if (sortBalance === 'lowToHigh') {
+                    filtered.sort((a, b) => parseFloat(a.balance || 0) - parseFloat(b.balance || 0));
+                }
+
+                // 3. Render
                 usersTable.innerHTML = '';
                 if (filtered.length === 0) {
-                    usersTable.innerHTML = `<tr><td colspan="6" class="text-center py-4 text-muted">No user accounts found matching your search.</td></tr>`;
+                    usersTable.innerHTML = `<tr><td colspan="6" class="text-center py-4 text-muted">No user accounts found matching selected filters.</td></tr>`;
                     return;
                 }
 
@@ -1581,12 +2322,14 @@
                         <td>
                             <div class="fw-bold text-dark">${u.name || 'User'}</div>
                             <div class="small text-secondary font-monospace" style="font-size:0.75rem;">ID: ${u.id}</div>
+                            <div class="small text-secondary" style="font-size:0.72rem;">Joined: ${u.created_at ? new Date(u.created_at).toLocaleDateString() : 'N/A'}</div>
                         </td>
                         <td>${u.email}</td>
                         <td><strong>₨ ${parseFloat(u.balance || 0).toFixed(2)}</strong></td>
                         <td><span class="badge bg-secondary">${u.role || 'user'}</span></td>
                         <td><span class="badge-custom ${statusBadgeClass}">${u.status || 'ACTIVE'}</span></td>
                         <td class="text-end">
+                            <button class="btn btn-sm btn-outline-info me-1 px-3" onclick="openUserAuditModal('${u.id}')" style="border-radius: 8px;"><i class="fa-solid fa-folder-open me-1"></i>View Records</button>
                             <button class="btn btn-sm btn-outline-primary me-1 px-3" onclick="openAdjustBalanceModal('${u.id}', '${u.email}')" style="border-radius: 8px;"><i class="fa-solid fa-scale-balanced me-1"></i>Adjust Balance</button>
                             ${u.status === 'ACTIVE' ? `
                                 <button class="btn btn-sm btn-outline-warning me-1 px-3" onclick="toggleUserStatus('${u.id}', 'SUSPENDED')" style="border-radius: 8px;"><i class="fa-solid fa-user-slash me-1"></i>Suspend</button>
@@ -1603,6 +2346,31 @@
             if (usersSearchInput) {
                 usersSearchInput.addEventListener('input', renderUsersTable);
             }
+
+            document.getElementById('applyUsersFilterBtn')?.addEventListener('click', () => {
+                renderUsersTable();
+            });
+
+            document.getElementById('clearUsersFilterBtn')?.addEventListener('click', () => {
+                if (usersSearchInput) usersSearchInput.value = '';
+                const start = document.getElementById('usersStartDate');
+                const end = document.getElementById('usersEndDate');
+                const sort = document.getElementById('usersSortBalance');
+                if (start) start.value = '';
+                if (end) end.value = '';
+                if (sort) sort.value = 'default';
+                
+                selectedAnalyticFilter = 'all';
+                document.querySelectorAll('.filter-analytic-card').forEach(el => {
+                    el.style.transform = 'scale(1)';
+                    el.style.boxShadow = 'none';
+                    el.style.borderColor = '#e2e8f0';
+                });
+
+                renderUsersTable();
+            });
+
+            document.getElementById('usersSortBalance')?.addEventListener('change', renderUsersTable);
 
             window.openAdjustBalanceModal = function(id, email) {
                 document.getElementById('adjustUserId').value = id;
@@ -2321,19 +3089,32 @@
             }
 
             // Audit log order filtering hooks
-            const adminOrdersUserFilter = document.getElementById('adminOrdersUserFilter');
+            const adminOrdersSearch = document.getElementById('adminOrdersSearch');
             const clearOrdersFilterBtn = document.getElementById('clearOrdersFilterBtn');
+            const applyOrdersFilterBtn = document.getElementById('applyOrdersFilterBtn');
 
-            if (adminOrdersUserFilter) {
-                adminOrdersUserFilter.addEventListener('input', () => {
-                    loadAdminData();
+            if (adminOrdersSearch) {
+                adminOrdersSearch.addEventListener('keypress', (e) => {
+                    if (e.key === 'Enter') {
+                        loadAdminOrders();
+                    }
+                });
+            }
+
+            if (applyOrdersFilterBtn) {
+                applyOrdersFilterBtn.addEventListener('click', () => {
+                    loadAdminOrders();
                 });
             }
 
             if (clearOrdersFilterBtn) {
                 clearOrdersFilterBtn.addEventListener('click', () => {
-                    adminOrdersUserFilter.value = '';
-                    loadAdminData();
+                    if (adminOrdersSearch) adminOrdersSearch.value = '';
+                    const start = document.getElementById('adminOrdersStartDate');
+                    const end = document.getElementById('adminOrdersEndDate');
+                    if (start) start.value = '';
+                    if (end) end.value = '';
+                    loadAdminOrders();
                 });
             }
 
@@ -2345,6 +3126,7 @@
 
             window.loadAdminDepositMethods = function() {
                 if (!adminDepositMethodsTableBody) return;
+                const headers = { 'Authorization': 'Bearer ' + sessionToken };
                 fetch('/api/admin/deposit-methods', { headers })
                     .then(res => res.json())
                     .then(data => {
@@ -2921,22 +3703,222 @@
                     });
                 });
             }
-
-            const adminWhatsappResetBtn = document.getElementById('adminWhatsappResetBtn');
-            if (adminWhatsappResetBtn) {
+                            if (adminWhatsappResetBtn) {
                 adminWhatsappResetBtn.addEventListener('click', () => {
                     loadAdminWhatsappSupportSettings();
                 });
             }
 
+            // User Auditing & Record Log Functions
+            let cachedUserAuditOrders = [];
+            let cachedUserAuditDeposits = [];
+
+            window.openUserAuditModal = function(userId) {
+                const modal = new bootstrap.Modal(document.getElementById('userAuditModal'));
+                modal.show();
+
+                // Set loading status
+                document.getElementById('auditUserIdVal').textContent = userId;
+                document.getElementById('auditUserEmail').textContent = 'Loading...';
+                document.getElementById('auditUserName').textContent = 'Loading...';
+                document.getElementById('auditUserBalance').textContent = '0.00';
+                document.getElementById('auditUserStatus').textContent = 'LOADING';
+                document.getElementById('auditUserStatus').className = 'badge bg-warning';
+                document.getElementById('auditUserRole').textContent = 'user';
+
+                document.getElementById('auditStatOrdersToday').textContent = '0';
+                document.getElementById('auditStatDepositsToday').textContent = 'Rs 0.00';
+                document.getElementById('auditStatOrdersLifetime').textContent = '0';
+                document.getElementById('auditStatDepositsLifetime').textContent = 'Rs 0.00';
+
+                const ordersTable = document.getElementById('auditOrdersTableBody');
+                const depositsTable = document.getElementById('auditDepositsTableBody');
+
+                ordersTable.innerHTML = `<tr><td colspan="8" class="text-center py-4"><span class="spinner-border spinner-border-sm me-2"></span>Loading user order history...</td></tr>`;
+                depositsTable.innerHTML = `<tr><td colspan="6" class="text-center py-4"><span class="spinner-border spinner-border-sm me-2"></span>Loading user deposit history...</td></tr>`;
+
+                const headers = { 'Authorization': 'Bearer ' + sessionToken };
+                fetch(`/api/admin/users/${userId}/detail`, { headers })
+                    .then(res => res.json())
+                    .then(data => {
+                        if (data.success) {
+                            // Populate Profile Card
+                            document.getElementById('auditUserEmail').textContent = data.profile.email;
+                            document.getElementById('auditUserName').textContent = data.profile.name || 'User';
+                            document.getElementById('auditUserBalance').textContent = parseFloat(data.profile.balance || 0).toFixed(2);
+                            
+                            const status = data.profile.status || 'ACTIVE';
+                            document.getElementById('auditUserStatus').textContent = status;
+                            document.getElementById('auditUserStatus').className = status === 'ACTIVE' 
+                                ? 'badge bg-success' 
+                                : (status === 'SUSPENDED' ? 'badge bg-warning text-dark' : 'badge bg-danger');
+                            
+                            document.getElementById('auditUserRole').textContent = data.profile.role || 'user';
+
+                            // Populate Stats
+                            document.getElementById('auditStatOrdersToday').textContent = data.stats.today_orders;
+                            document.getElementById('auditStatDepositsToday').textContent = `Rs ${data.stats.today_deposits.toFixed(2)}`;
+                            document.getElementById('auditStatOrdersLifetime').textContent = data.stats.lifetime_orders;
+                            document.getElementById('auditStatDepositsLifetime').textContent = `Rs ${data.stats.lifetime_deposits.toFixed(2)}`;
+
+                            // Cache lists for local instant search/filter
+                            cachedUserAuditOrders = data.orders || [];
+                            cachedUserAuditDeposits = data.deposits || [];
+
+                            // Reset filter inputs
+                            if (document.getElementById('auditOrdersSearchInput')) {
+                                document.getElementById('auditOrdersSearchInput').value = '';
+                            }
+                            if (document.getElementById('auditOrdersStatusFilter')) {
+                                document.getElementById('auditOrdersStatusFilter').value = 'ALL';
+                            }
+
+                            // Render Tables
+                            renderAuditOrdersTable();
+                            renderAuditDepositsTable();
+                        } else {
+                            ordersTable.innerHTML = `<tr><td colspan="8" class="text-center py-4 text-danger">Error: ${data.message}</td></tr>`;
+                            depositsTable.innerHTML = `<tr><td colspan="6" class="text-center py-4 text-danger">Error: ${data.message}</td></tr>`;
+                        }
+                    })
+                    .catch(err => {
+                        ordersTable.innerHTML = `<tr><td colspan="8" class="text-center py-4 text-danger">Network Error: ${err.message}</td></tr>`;
+                        depositsTable.innerHTML = `<tr><td colspan="6" class="text-center py-4 text-danger">Network Error: ${err.message}</td></tr>`;
+                    });
+            };
+
+            function renderAuditOrdersTable() {
+                const tbody = document.getElementById('auditOrdersTableBody');
+                if (!tbody) return;
+
+                const search = (document.getElementById('auditOrdersSearchInput')?.value || '').toLowerCase().trim();
+                const statusFilter = document.getElementById('auditOrdersStatusFilter')?.value || 'ALL';
+
+                const filtered = cachedUserAuditOrders.filter(o => {
+                    const matchesSearch = !search || 
+                        o.order_id.toLowerCase().includes(search) || 
+                        (o.number && o.number.toLowerCase().includes(search)) || 
+                        (o.service && o.service.toLowerCase().includes(search)) ||
+                        (o.country && o.country.toLowerCase().includes(search));
+
+                    const matchesStatus = statusFilter === 'ALL' || o.status === statusFilter;
+
+                    return matchesSearch && matchesStatus;
+                });
+
+                tbody.innerHTML = '';
+                if (filtered.length === 0) {
+                    tbody.innerHTML = `<tr><td colspan="8" class="text-center py-4 text-muted">No orders found matching the filters.</td></tr>`;
+                    return;
+                }
+
+                filtered.forEach(o => {
+                    const tr = document.createElement('tr');
+                    const statusClass = o.status === 'COMPLETED' ? 'badge-approved' : (o.status === 'PENDING' ? 'badge-pending' : 'badge-rejected');
+                    tbody.appendChild(tr);
+                    tr.innerHTML = `
+                        <td><code class="font-monospace" style="font-size:0.8rem;">${o.order_id}</code></td>
+                        <td>
+                            <div class="fw-bold small">${o.service}</div>
+                            <div class="text-muted small" style="font-size:0.75rem;">${o.country || ''}</div>
+                        </td>
+                        <td><strong>${o.number || 'N/A'}</strong></td>
+                        <td><code class="fs-6 text-primary">${o.otp || '------'}</code></td>
+                        <td>Rs ${parseFloat(o.price || 0).toFixed(2)}</td>
+                        <td>
+                            <span class="status-badge ${statusClass}">${o.status}</span>
+                            ${(o.status === 'PENDING' || o.status === 'EXPIRED') ? `
+                                <button class="btn btn-sm btn-danger ms-2 px-2 py-0" onclick="confirmRefundOrder('${o.order_id}')" style="font-size: 0.75rem; border-radius: 6px;"><i class="fa-solid fa-undo me-1"></i>Refund</button>
+                            ` : ''}
+                        </td>
+                        <td class="small text-secondary" style="font-size:0.75rem;">${new Date(o.created_at).toLocaleString()}</td>
+                        <td>
+                            ${o.sms_url 
+                                ? `<button class="btn btn-sm btn-outline-primary" onclick="window.open('${o.sms_url}', '_blank')" style="font-size: 0.75rem; border-radius: 6px;">🔗 URL</button>`
+                                : `<span class="text-muted small" style="font-size: 0.75rem;">None</span>`}
+                        </td>
+                    `;
+                });
+            }
+
+            function renderAuditDepositsTable() {
+                const tbody = document.getElementById('auditDepositsTableBody');
+                if (!tbody) return;
+
+                tbody.innerHTML = '';
+                if (cachedUserAuditDeposits.length === 0) {
+                    tbody.innerHTML = `<tr><td colspan="6" class="text-center py-4 text-muted">No deposit records found for this user.</td></tr>`;
+                    return;
+                }
+
+                cachedUserAuditDeposits.forEach(d => {
+                    const tr = document.createElement('tr');
+                    const statusClass = d.status === 'APPROVED' ? 'badge-approved' : (d.status === 'PENDING' ? 'badge-pending' : 'badge-rejected');
+                    
+                    const isAdjust = d.method === 'ADMIN_ADJUSTMENT' || d.method === 'ADMIN_DIRECT';
+                    const methodClass = isAdjust ? 'bg-info-subtle text-info border border-info-subtle' : 'bg-secondary';
+
+                    tbody.appendChild(tr);
+                    tr.innerHTML = `
+                        <td><span class="badge ${methodClass} font-monospace">${d.method}</span></td>
+                        <td><strong>${d.currency} ${parseFloat(d.amount).toFixed(2)}</strong></td>
+                        <td><strong>Rs ${parseFloat(d.amount_pkr || 0).toFixed(2)}</strong></td>
+                        <td>
+                            <div>Account/TxID: <code>${d.tx_id && d.tx_id.startsWith('NP-') ? 'Not Provided' : d.tx_id}</code></div>
+                            ${d.proof_image ? `
+                                <div class="mt-1">
+                                    <button class="btn btn-sm btn-outline-primary px-2 py-0" onclick="viewAdminProofScreenshot('${d.proof_image}')" style="font-size: 0.7rem; border-radius: 6px;"><i class="fa-solid fa-eye me-1"></i>View Proof</button>
+                                </div>
+                            ` : ''}
+                            ${d.payment_note ? `<div class="mt-1 small text-dark bg-light p-1 rounded" style="font-size: 0.75rem; border-left: 2px solid #cbd5e1; white-space: pre-wrap;"><strong>Note:</strong> ${d.payment_note}</div>` : ''}
+                        </td>
+                        <td><span class="status-badge ${statusClass}">${d.status}</span></td>
+                        <td class="small text-secondary" style="font-size:0.75rem;">${new Date(d.created_at).toLocaleString()}</td>
+                    `;
+                });
+            }
+
+            // Hook up Search Input and Status Filter in User Audit logs modal
+            document.getElementById('auditOrdersSearchInput')?.addEventListener('input', renderAuditOrdersTable);
+            document.getElementById('auditOrdersStatusFilter')?.addEventListener('change', renderAuditOrdersTable);
+
             // 7. Verify Admin Identity on Load
-            const headers = { 'Authorization': 'Bearer ' + sessionToken };
-            fetch('/api/user/profile', { headers })
+            const adminAuthHeaders = { 'Authorization': 'Bearer ' + sessionToken };
+            fetch('/api/user/profile', { headers: adminAuthHeaders })
                 .then(res => res.json())
                 .then(data => {
                     if (data.success && data.profile && data.profile.is_admin) {
                         // User is authorized admin, load dashboard data
                         loadAdminData();
+
+                        // Start 3-second live updates loop (runs in background too)
+                        setInterval(loadAdminLiveUpdates, 3000);
+
+                        // Trigger immediate refresh on tab return
+                        document.addEventListener('visibilitychange', () => {
+                            if (document.visibilityState === 'visible') {
+                                loadAdminLiveUpdates();
+                            }
+                        });
+
+                        // Setup Overview Date Filters
+                        const filterSelect = document.getElementById('overviewFilter');
+                        const customInputs = document.getElementById('customDateRangeInputs');
+                        
+                        filterSelect?.addEventListener('change', () => {
+                            if (filterSelect.value === 'custom') {
+                                customInputs.classList.remove('d-none');
+                                customInputs.classList.add('d-flex');
+                            } else {
+                                customInputs.classList.remove('d-flex');
+                                customInputs.classList.add('d-none');
+                                loadAdminLiveUpdates();
+                            }
+                        });
+
+                        document.getElementById('applyCustomDateBtn')?.addEventListener('click', () => {
+                            loadAdminLiveUpdates();
+                        });
                     } else {
                         // User is logged in but is NOT an admin
                         alert('Access Denied: Admin authorization required.');

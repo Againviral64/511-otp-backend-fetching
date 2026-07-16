@@ -1,6 +1,7 @@
 import { NextResponse } from 'next/server';
 import supabase, { isMock } from '@/lib/db';
 import { verifyAuth } from '@/lib/middleware';
+import { checkRateLimit, RATE_LIMITS, getClientKey } from '@/lib/rate-limit';
 
 // Local Memory mock messages fallback
 let mockTicketMessages = [];
@@ -65,6 +66,13 @@ export async function GET(request, { params }) {
 
 export async function POST(request, { params }) {
     try {
+        // Rate limit check
+        const clientKey = getClientKey(request);
+        const limit = checkRateLimit(`ticket_messages:${clientKey}`, RATE_LIMITS.TICKET_MESSAGES.maxRequests, RATE_LIMITS.TICKET_MESSAGES.windowMs);
+        if (!limit.allowed) {
+            return NextResponse.json({ success: false, message: `Too many message replies. Please wait ${Math.ceil(limit.retryAfterMs / 1000)} seconds.` }, { status: 429 });
+        }
+
         const user = await verifyAuth(request);
         const { id } = await params;
         const ticketId = parseInt(id);

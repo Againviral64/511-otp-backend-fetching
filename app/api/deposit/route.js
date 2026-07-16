@@ -24,8 +24,35 @@ export async function POST(request) {
 
         const finalMethod = method || 'Direct Transfer';
 
-        // Validate and sanitize inputs
-        const amountCheck = validateAmount(amount, 1, 50000);
+        // Validate and sanitize inputs dynamically based on settings table
+        let minAmount = 1;
+        let maxAmount = 50000;
+
+        if (!isMock && supabase) {
+            try {
+                const { data: dbSettings } = await supabase
+                    .from('settings')
+                    .select('key, value')
+                    .in('key', ['min_deposit_amount', 'max_deposit_amount']);
+                
+                if (dbSettings) {
+                    const minRow = dbSettings.find(r => r.key === 'min_deposit_amount');
+                    const maxRow = dbSettings.find(r => r.key === 'max_deposit_amount');
+                    if (minRow) {
+                        const val = parseFloat(minRow.value);
+                        if (!isNaN(val)) minAmount = val;
+                    }
+                    if (maxRow) {
+                        const val = parseFloat(maxRow.value);
+                        if (!isNaN(val)) maxAmount = val;
+                    }
+                }
+            } catch (e) {
+                console.error('Failed to load deposit settings limits:', e.message);
+            }
+        }
+
+        const amountCheck = validateAmount(amount, minAmount, maxAmount);
         if (!amountCheck.valid) {
             return NextResponse.json({ success: false, message: amountCheck.message });
         }
