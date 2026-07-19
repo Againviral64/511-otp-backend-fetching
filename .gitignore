@@ -40,6 +40,16 @@ yarn-error.log*
 scratch/
 scratch_*.py
 
+# excluded folders
+Mobile-App/
+Mobile-App-Python/
+mobile-app/
+mobile-app-python/
+python-backend-live/
+python-frontend-live/
+tracking-frontend-live/
+
 # typescript
 *.tsbuildinfo
 next-env.d.ts
+
