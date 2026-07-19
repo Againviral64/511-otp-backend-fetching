@@ -986,6 +986,15 @@
                             <div class="form-text mt-2 text-muted">This settings sets the dynamic timeout countdown limit visible to users in their live orders list.</div>
                         </div>
 
+                        <div class="mb-4">
+                            <label for="trackingDomainInput" class="form-label fw-bold text-dark"><i class="fa-solid fa-globe text-primary me-1"></i>Tracking Link Domain</label>
+                            <div class="input-group">
+                                <span class="input-group-text font-monospace text-muted">https://</span>
+                                <input type="text" class="form-control font-monospace" id="trackingDomainInput" placeholder="access.novatixdigi.online" required>
+                            </div>
+                            <div class="form-text mt-2 text-muted">Domain used to construct tracking links (e.g. <code>https://access.novatixdigi.online/tracking_key</code>).</div>
+                        </div>
+
                         <button type="submit" class="btn btn-success px-4 m-0" id="saveSettingsBtn">
                             <i class="fa-solid fa-floppy-disk me-2"></i>Save Configurations
                         </button>
@@ -2111,12 +2120,18 @@
                         showAlert('Error loading services: ' + err.message);
                     });
 
-                // 5. Fetch current OTP expiry duration settings
+                // 5. Fetch current system settings (OTP expiry & tracking domain)
                 fetch('/api/admin/settings', { headers })
                     .then(res => res.json())
                     .then(data => {
                         if (data.success) {
-                            document.getElementById('otpExpiryDurationInput').value = data.otp_expiry_duration;
+                            if (document.getElementById('otpExpiryDurationInput')) {
+                                document.getElementById('otpExpiryDurationInput').value = data.otp_expiry_duration;
+                            }
+                            if (document.getElementById('trackingDomainInput')) {
+                                document.getElementById('trackingDomainInput').value = data.tracking_domain || 'access.novatixdigi.online';
+                            }
+                            window.trackingDomain = data.tracking_domain || 'access.novatixdigi.online';
                         }
                     });
 
@@ -4040,16 +4055,27 @@
 
                                         if (data.orders && data.orders.length > 0) {
                                             resultTable.classList.remove('d-none');
-                                            resultBody.innerHTML = data.orders.map(o => `
+                                            const getAdminTrackUrl = (tk) => {
+                                                let d = (window.trackingDomain || document.getElementById('trackingDomainInput')?.value || 'access.novatixdigi.online').trim();
+                                                d = d.replace(/^https?:\/\//i, '').replace(/\/$/, '');
+                                                return `https://${d}/${tk}`;
+                                            };
+                                            resultBody.innerHTML = data.orders.map(o => {
+                                                const trackUrl = getAdminTrackUrl(o.tracking_key);
+                                                return `
                                                 <tr>
                                                     <td class="font-monospace small">${o.order_id}</td>
                                                     <td class="fw-bold">${o.number}</td>
                                                     <td><span class="badge bg-secondary">${o.service || 'Facebook'}</span></td>
                                                     <td class="small font-monospace text-truncate" style="max-width: 200px;" title="${o.sms_url}">${o.sms_url}</td>
-                                                    <td><a href="/${o.tracking_key}" target="_blank" class="btn btn-sm btn-outline-primary py-0 px-2" style="font-size: 0.75rem;"><i class="fa-solid fa-link me-1"></i>Track</a></td>
+                                                    <td>
+                                                        <a href="${trackUrl}" target="_blank" class="btn btn-sm btn-outline-primary py-0 px-2" style="font-size: 0.75rem;"><i class="fa-solid fa-link me-1"></i>Track</a>
+                                                        <button class="btn btn-sm btn-outline-secondary py-0 px-2 ms-1" onclick="navigator.clipboard.writeText('${trackUrl}')" title="Copy tracking link" style="font-size: 0.75rem;"><i class="fa-solid fa-copy"></i></button>
+                                                    </td>
                                                     <td><span class="badge bg-warning text-dark">${o.status}</span></td>
                                                 </tr>
-                                            `).join('');
+                                            `;
+                                            }).join('');
                                         }
                                         
                                         loadAdminLiveUpdates();
@@ -4065,6 +4091,42 @@
                                 .finally(() => {
                                     submitBtn.disabled = false;
                                     submitBtn.innerHTML = origBtnHtml;
+                                });
+                            });
+                        }
+
+                        // System Settings Form Submit
+                        const systemSettingsForm = document.getElementById('systemSettingsForm');
+                        if (systemSettingsForm) {
+                            systemSettingsForm.addEventListener('submit', (e) => {
+                                e.preventDefault();
+                                const duration = document.getElementById('otpExpiryDurationInput').value;
+                                const trackingDomain = document.getElementById('trackingDomainInput').value;
+                                const saveBtn = document.getElementById('saveSettingsBtn');
+                                saveBtn.disabled = true;
+                                saveBtn.innerHTML = '<span class="spinner-border spinner-border-sm me-2"></span>Saving...';
+
+                                fetch('/api/admin/settings', {
+                                    method: 'POST',
+                                    headers: {
+                                        'Content-Type': 'application/json',
+                                        'Authorization': 'Bearer ' + sessionToken
+                                    },
+                                    body: JSON.stringify({ duration, tracking_domain: trackingDomain })
+                                })
+                                .then(res => res.json())
+                                .then(data => {
+                                    if (data.success) {
+                                        alert('Configurations saved successfully!');
+                                        window.trackingDomain = trackingDomain.trim().replace(/^https?:\/\//i, '').replace(/\/$/, '');
+                                    } else {
+                                        alert('Error saving settings: ' + data.message);
+                                    }
+                                })
+                                .catch(err => alert('Network error: ' + err.message))
+                                .finally(() => {
+                                    saveBtn.disabled = false;
+                                    saveBtn.innerHTML = '<i class="fa-solid fa-floppy-disk me-2"></i>Save Configurations';
                                 });
                             });
                         }

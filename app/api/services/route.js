@@ -52,14 +52,17 @@ export async function GET() {
         const dbServicesFiltered = dbServices ? dbServices.filter(db => db.group_name !== 'SYSTEM_CONFIG') : [];
 
         let expiryMinutes = 4;
+        let trackingDomain = 'access.novatixdigi.online';
         try {
-            const { data: configRow } = await supabase
+            const { data: configRows } = await supabase
                 .from('settings')
-                .select('value')
-                .eq('key', 'otp_expiry_duration')
-                .maybeSingle();
-            if (configRow) {
-                expiryMinutes = parseInt(configRow.value) || 4;
+                .select('key, value')
+                .in('key', ['otp_expiry_duration', 'tracking_domain']);
+            if (configRows) {
+                const expRow = configRows.find(r => r.key === 'otp_expiry_duration');
+                const trkRow = configRows.find(r => r.key === 'tracking_domain');
+                if (expRow && expRow.value) expiryMinutes = parseInt(expRow.value) || 4;
+                if (trkRow && trkRow.value) trackingDomain = trkRow.value.trim();
             }
         } catch (e) {
             console.error('Failed to query settings table:', e.message);
@@ -98,7 +101,8 @@ export async function GET() {
                 success: true,
                 countries: fallbackGroups,
                 services: fallbackServices,
-                otp_expiry_minutes: expiryMinutes
+                otp_expiry_minutes: expiryMinutes,
+                tracking_domain: trackingDomain
             });
         }
 
@@ -108,7 +112,8 @@ export async function GET() {
             success: true,
             countries: filteredGroups.length > 0 ? filteredGroups : (apiGroups.length > 0 ? apiGroups : mockGroups),
             services: activeServices,
-            otp_expiry_minutes: expiryMinutes
+            otp_expiry_minutes: expiryMinutes,
+            tracking_domain: trackingDomain
         });
     } catch (err) {
         console.error('Get services failure:', err.message);

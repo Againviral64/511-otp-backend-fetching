@@ -664,10 +664,11 @@ document.addEventListener('DOMContentLoaded', () => {
         // Core purchase actions triggers
         buyNumberBtn.addEventListener('click', handleBuyNumber);
         copyOtpBtn.addEventListener('click', handleCopyOtp);
+
         if (copyTrackingLinkBtn) {
             copyTrackingLinkBtn.addEventListener('click', () => {
                 if (!currentTrackingKey) return;
-                const link = `https://access.novatixdigi.online/${currentTrackingKey}`;
+                const link = getTrackingUrl(currentTrackingKey);
                 navigator.clipboard.writeText(link)
                     .then(() => {
                         showAlert('Tracking URL copied to clipboard!', 'success');
@@ -972,6 +973,13 @@ document.addEventListener('DOMContentLoaded', () => {
         });
     }
 
+    function getTrackingUrl(trackingKey) {
+        if (!trackingKey) return '';
+        let domain = window.trackingDomain || 'access.novatixdigi.online';
+        domain = String(domain).trim().replace(/^https?:\/\//i, '').replace(/\/$/, '');
+        return `https://${domain}/${trackingKey}`;
+    }
+
     function showToast(message, type = 'danger') {
         const toastContainer = document.getElementById('toastContainer');
         if (!toastContainer) return;
@@ -1165,8 +1173,11 @@ document.addEventListener('DOMContentLoaded', () => {
             .then(res => res.json())
             .then(data => {
                 if (data.success) {
-                    // Save dynamic OTP timeout config
+                    // Save dynamic OTP timeout & tracking domain config
                     window.otpExpiryMinutes = data.otp_expiry_minutes || 5;
+                    if (data.tracking_domain) {
+                        window.trackingDomain = data.tracking_domain;
+                    }
                     const timeoutLimitBadge = document.getElementById('timeoutLimitBadge');
                     if (timeoutLimitBadge) {
                         timeoutLimitBadge.textContent = `Timeout: ${window.otpExpiryMinutes} mins`;
@@ -1538,7 +1549,8 @@ document.addEventListener('DOMContentLoaded', () => {
             } else {
                 const tk = o.tracking_key;
                 if (tk) {
-                    lines.push(`${o.number}\nhttps://access.novatixdigi.online/${tk}`);
+                    lines.push(`${o.number}\n${getTrackingUrl(tk)}`);
+                    lines.push('');
                 } else {
                     lines.push(`${o.number}\nTracking link: resolving...`);
                 }
@@ -1918,7 +1930,7 @@ document.addEventListener('DOMContentLoaded', () => {
                 : `<button class="btn btn-sm btn-primary px-3 py-1 btn-history-fetch" data-order-id="${o.order_id}" data-number="${o.number}"><i class="fa-solid fa-envelope me-1"></i>Fetch</button>`;
 
             const bulkBadge = o.is_bulk ? `<span class="badge bg-secondary-subtle text-secondary border ms-1" style="font-size: 0.65rem; padding: 2px 4px;">Bulk</span>` : '';
-            const trackingLink = `https://access.novatixdigi.online/${o.tracking_key}`;
+            const trackingLink = getTrackingUrl(o.tracking_key);
             const copyLinkMarkup = o.tracking_key 
                 ? `<button class="btn btn-sm btn-copy-link border-0" data-link="${trackingLink}" title="Copy tracking link" style="background-color: var(--primary-light); color: var(--primary); font-size: 0.72rem; padding: 2px 8px; border-radius: 6px; font-weight: 600; display: inline-flex; align-items: center; gap: 4px; margin-left: 6px; vertical-align: middle; cursor: pointer; text-decoration: none;"><i class="fa-solid fa-link"></i>Copy Link</button>`
                 : '';
