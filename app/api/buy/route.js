@@ -42,6 +42,7 @@ export async function POST(request) {
         // 1. Fetch dynamic pricing from database services table
         let expiryDuration = 4;
         let validityPeriod = 4;
+        let numberSegment = null;
         if (!isMock && supabase) {
             const { data: sRow } = await supabase
                 .from('services')
@@ -55,6 +56,7 @@ export async function POST(request) {
                 appName = sRow.app_name;
                 groupName = sRow.group_name;
                 validityPeriod = sRow.validity_period || 4;
+                numberSegment = sRow.number_segment || null;
             } else {
                 return NextResponse.json({ success: false, message: 'This service product is currently unavailable.' });
             }
@@ -124,7 +126,11 @@ export async function POST(request) {
             mockOrders.unshift(newMockOrder);
         } else {
             // Call live gateway to buy a number
-            const buyUrl = `${apiBase.replace(/\/$/, '')}/api/v1/get?key=${encodeURIComponent(apiToken)}&id=${encodeURIComponent(service)}&num=1&time=${validityPeriod}`;
+            let buyUrl = `${apiBase.replace(/\/$/, '')}/api/v1/get?key=${encodeURIComponent(apiToken)}&id=${encodeURIComponent(service)}&num=1&time=${validityPeriod}`;
+            if (numberSegment && numberSegment.trim() !== '') {
+                const seg = numberSegment.trim();
+                buyUrl += `&phone=${encodeURIComponent(seg)}&prefix=${encodeURIComponent(seg)}&segment=${encodeURIComponent(seg)}`;
+            }
             const buyResponse = await makeRequest(buyUrl);
 
             if (!buyResponse) {

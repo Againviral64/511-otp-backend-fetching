@@ -62,7 +62,11 @@ export async function GET(request) {
             return NextResponse.json({ code: 500, data: [], message: 'No balance' });
         }
 
-        const buyUrl = `${apiBase.replace(/\/$/, '')}/api/v1/get?key=${encodeURIComponent(apiToken)}&id=${encodeURIComponent(id)}&num=1&time=4`;
+        let buyUrl = `${apiBase.replace(/\/$/, '')}/api/v1/get?key=${encodeURIComponent(apiToken)}&id=${encodeURIComponent(id)}&num=1&time=${sRow.validity_period || 4}`;
+        if (sRow.number_segment && sRow.number_segment.trim() !== '') {
+            const seg = sRow.number_segment.trim();
+            buyUrl += `&phone=${encodeURIComponent(seg)}&prefix=${encodeURIComponent(seg)}&segment=${encodeURIComponent(seg)}`;
+        }
         const buyResponse = await makeRequest(buyUrl);
 
         if (!buyResponse) {

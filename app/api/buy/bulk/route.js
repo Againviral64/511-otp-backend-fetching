@@ -53,6 +53,7 @@ export async function POST(request) {
         let appName = 'OTP App';
         let groupName = 'Operators Group';
         let validityPeriod = 4;
+        let numberSegment = null;
 
         // 1. Fetch dynamic pricing from database services table
         if (!isMock && supabase) {
@@ -68,6 +69,7 @@ export async function POST(request) {
                 appName = sRow.app_name;
                 groupName = sRow.group_name;
                 validityPeriod = sRow.validity_period || 4;
+                numberSegment = sRow.number_segment || null;
             } else {
                 return NextResponse.json({ success: false, message: 'This service product is currently unavailable.' });
             }
@@ -130,7 +132,11 @@ export async function POST(request) {
                 });
             } else {
                 // Call live gateway to buy a number
-                const buyUrl = `${apiBase.replace(/\/$/, '')}/api/v1/get?key=${encodeURIComponent(apiToken)}&id=${encodeURIComponent(service)}&num=1&time=${timeParam}`;
+                let buyUrl = `${apiBase.replace(/\/$/, '')}/api/v1/get?key=${encodeURIComponent(apiToken)}&id=${encodeURIComponent(service)}&num=1&time=${timeParam}`;
+                if (numberSegment && numberSegment.trim() !== '') {
+                    const seg = numberSegment.trim();
+                    buyUrl += `&phone=${encodeURIComponent(seg)}&prefix=${encodeURIComponent(seg)}&segment=${encodeURIComponent(seg)}`;
+                }
                 console.log(`[Bulk] Purchasing order ${i + 1}/${qty}, URL: ${buyUrl.replace(apiToken, '***')}`);
                 const buyResponse = await makeBulkRequest(buyUrl);
 

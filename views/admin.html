@@ -1112,6 +1112,13 @@
                         </select>
                         <div class="form-text mt-1" id="validityStockInfo">Select the stock pool for this service.</div>
                     </div>
+
+                    <!-- Number Segment Selection -->
+                    <div class="mb-3" id="numberSegmentContainer">
+                        <label for="modalNumberSegment" class="form-label fw-bold"><i class="fa-solid fa-layer-group me-1 text-primary"></i>Select Number Segment (Optional)</label>
+                        <input type="text" class="form-control font-monospace" id="modalNumberSegment" placeholder="e.g. 1309 or leave empty for default all" style="border-radius: 8px;">
+                        <div class="form-text mt-1 text-muted">Filter numbers by segment/prefix (leave empty for default all).</div>
+                    </div>
                 </div>
                 <div class="modal-footer border-top-0 pt-0">
                     <button type="button" class="btn btn-secondary px-4" data-bs-dismiss="modal" style="border-radius: var(--radius);">Cancel</button>
@@ -2710,6 +2717,9 @@
                         4: '60-90 Days (Markup 20%)'
                     };
                     const validityText = s.validity_period ? `<div class="small text-primary fw-semibold mt-1">Period: ${validityLabels[s.validity_period] || '60-90 Days'}</div>` : '';
+                    const segmentBadge = s.number_segment 
+                        ? `<div class="small text-info fw-semibold mt-1"><i class="fa-solid fa-layer-group me-1"></i>Segment: ${s.number_segment}</div>` 
+                        : `<div class="small text-muted mt-1">Segment: All</div>`;
                     
                     tr.innerHTML = `
                         <td><span class="text-muted fw-bold">${index + 1}</span></td>
@@ -2721,6 +2731,7 @@
                             <strong class="text-dark">${s.name}</strong>
                             ${stockText}
                             ${validityText}
+                            ${segmentBadge}
                         </td>
                         <td>
                             <span class="badge bg-light text-dark border">${s.group_name || 'Standard'}</span>
@@ -2909,6 +2920,11 @@
                     }
                 };
 
+                const segmentInput = document.getElementById('modalNumberSegment');
+                if (segmentInput) {
+                    segmentInput.value = service.number_segment || '';
+                }
+
                 pricingModal.show();
             };
 
@@ -2952,7 +2968,8 @@
                         service_id: currentEditingServiceId,
                         cost_price: costPriceUSD,
                         sell_price: sellPriceUSD,
-                        validity_period: parseInt(document.getElementById('modalValidityPeriod').value)
+                        validity_period: parseInt(document.getElementById('modalValidityPeriod').value),
+                        number_segment: document.getElementById('modalNumberSegment')?.value.trim() || ''
                     })
                 })
                 .then(res => res.json())

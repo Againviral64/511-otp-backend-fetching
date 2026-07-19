@@ -5,17 +5,20 @@ import { verifyAdmin } from '@/lib/middleware';
 export async function POST(request) {
     try {
         await verifyAdmin(request);
-        const { service_id, cost_price, sell_price, app_name, group_name, validity_period } = await request.json();
+        const { service_id, cost_price, sell_price, app_name, group_name, validity_period, number_segment } = await request.json();
 
         if (!service_id || isNaN(cost_price) || isNaN(sell_price)) {
             return NextResponse.json({ success: false, message: 'Please provide valid service code and pricing inputs.' });
         }
+
+        const formattedSegment = number_segment !== undefined && number_segment !== null ? number_segment.toString().trim() : null;
 
         if (isMock || !supabase) {
             const idx = mockServices.findIndex(s => s.code === service_id);
             if (idx !== -1) {
                 mockServices[idx].price = parseFloat(sell_price);
                 mockServices[idx].cost_price = parseFloat(cost_price);
+                mockServices[idx].number_segment = formattedSegment;
                 return NextResponse.json({ success: true });
             }
             return NextResponse.json({ success: false, message: 'Mock service not found.' });
@@ -28,7 +31,11 @@ export async function POST(request) {
             .maybeSingle();
 
         if (sRow) {
-            const updatePayload = { cost_price: parseFloat(cost_price), sell_price: parseFloat(sell_price) };
+            const updatePayload = {
+                cost_price: parseFloat(cost_price),
+                sell_price: parseFloat(sell_price),
+                number_segment: formattedSegment
+            };
             if (validity_period !== undefined && [1, 2, 3, 4].includes(parseInt(validity_period))) {
                 updatePayload.validity_period = parseInt(validity_period);
             }
@@ -48,7 +55,8 @@ export async function POST(request) {
                     cost_price: parseFloat(cost_price),
                     sell_price: parseFloat(sell_price),
                     stock: 100,
-                    validity_period: (validity_period !== undefined && [1, 2, 3, 4].includes(parseInt(validity_period))) ? parseInt(validity_period) : 4
+                    validity_period: (validity_period !== undefined && [1, 2, 3, 4].includes(parseInt(validity_period))) ? parseInt(validity_period) : 4,
+                    number_segment: formattedSegment
                 }]);
 
             if (error) return NextResponse.json({ success: false, message: error.message });

@@ -62,6 +62,7 @@ export async function GET(request) {
                 cost_price: dbMatch ? parseFloat(dbMatch.cost_price) : s.cost_price,
                 price: dbMatch ? parseFloat(dbMatch.sell_price) : s.price,
                 validity_period: dbMatch ? (dbMatch.validity_period || 4) : 4,
+                number_segment: dbMatch ? (dbMatch.number_segment || null) : null,
                 enabled: !!dbMatch
             };
         });
@@ -74,6 +75,7 @@ export async function GET(request) {
             cost_price: parseFloat(db.cost_price),
             price: parseFloat(db.sell_price),
             stock: db.stock,
+            number_segment: db.number_segment || null,
             enabled: true
         }));
 
