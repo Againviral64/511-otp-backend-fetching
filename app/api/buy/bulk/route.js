@@ -105,9 +105,9 @@ export async function POST(request) {
 
             // Check custom stock_adding table first!
             let customStockItem = null;
-            if (!isMock && supabase) {
+            if (!isMock && dbClient) {
                 try {
-                    const { data: stockCandidate } = await supabase
+                    const { data: stockCandidate } = await dbClient
                         .from('stock_adding')
                         .select('*')
                         .eq('service_id', service.toString())
@@ -117,7 +117,7 @@ export async function POST(request) {
                         .maybeSingle();
 
                     if (stockCandidate) {
-                        const { data: claimedItem, error: claimErr } = await supabase
+                        const { data: claimedItem, error: claimErr } = await dbClient
                             .from('stock_adding')
                             .update({
                                 status: 'used',
@@ -142,14 +142,14 @@ export async function POST(request) {
                 number = customStockItem.phone_number;
                 smsUrl = customStockItem.sms_url;
 
-                // Move out of stock_adding table by deleting the claimed row
+                // Mark stock row as used in stock_adding
                 try {
-                    await supabase
+                    await dbClient
                         .from('stock_adding')
-                        .delete()
+                        .update({ status: 'used', used_at: new Date().toISOString() })
                         .eq('id', customStockItem.id);
                 } catch (err) {
-                    console.error('[Bulk] Failed to delete claimed stock_adding row:', err.message);
+                    console.error('[Bulk] Failed to update claimed stock_adding row:', err.message);
                 }
             } else if (isMock) {
                 const randDigits = Math.floor(1000000000 + Math.random() * 9000000000).toString();
